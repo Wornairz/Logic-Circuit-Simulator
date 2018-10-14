@@ -1,26 +1,40 @@
 <mat-sidenav-container class="sidenav-container">
-  <mat-sidenav
-    #drawer
-    class="sidenav"
-    fixedInViewport="false"
-    [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
-    [mode]="(isHandset$ | async) ? 'over' : 'side'"
-    [opened]="!(isHandset$ | async)">
+  <mat-sidenav #drawer class="sidenav" fixedInViewport="false" [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="!(isHandset$ | async)">
     <mat-toolbar color="primary">Menu</mat-toolbar>
     <mat-nav-list>
-      <a mat-list-item href="#">Link 1</a>
-      <a mat-list-item href="#">Link 2</a>
-      <a mat-list-item href="#">Link 3</a>
+      <mat-accordion multi=true>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            Gates
+          </mat-expansion-panel-header>
+
+          <button mat-button><img src="/assets/AND.svg"></button>
+          <button mat-button><img src="/assets/OR.svg"></button>
+          <button mat-button><img src="/assets/NAND.svg"></button>
+          <button mat-button><img src="/assets/NOR.svg"></button>
+          <button mat-button><img src="/assets/XOR.svg"></button>
+          <button mat-button><img src="/assets/NOT.svg"></button>
+
+        </mat-expansion-panel>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            Input & Output
+          </mat-expansion-panel-header>
+
+          <button mat-button><img src="/assets/INPUT.svg"></button>
+          <button mat-button><img src="/assets/INPUTN.svg"></button>
+
+        </mat-expansion-panel>
+
+      </mat-accordion>
     </mat-nav-list>
   </mat-sidenav>
   <mat-sidenav-content>
     <mat-toolbar color="primary">
-      <button
-        type="button"
-        aria-label="Toggle sidenav"
-        mat-icon-button
-        (click)="drawer.toggle()"
-        *ngIf="isHandset$ | async">
+      <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()" *ngIf="isHandset$ | async">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
       <span>Strumenti</span>

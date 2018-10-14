@@ -3,7 +3,7 @@
 }
 
 .sidenav {
-  width: 250px;
+  width: 200px;
 }
 
 .mat-toolbar.mat-primary {
@@ -11,3 +11,16 @@
   top: 0;
 }
 
+.mat-button{
+  width: 40px;
+  height: 40px;
+  min-width: 0px;
+  padding: 0;
+  margin-right: 10px;
+  margin-bottom: 5px;
+}
+
+button.mat-button img{
+  height: 35px;
+  width: 45px;
+}
