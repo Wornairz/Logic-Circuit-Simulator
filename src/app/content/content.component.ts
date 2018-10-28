@@ -15,6 +15,17 @@ class Wire {
     this.sorgente = sorgente;
     this.destinazione = destinazione;
   }
+  public passaDa(x: number, y: number): boolean {
+    if(x == this.sorgente.x || x == this.destinazione.x){
+      if((y >= this.sorgente.y && y <= this.destinazione.y) || (y >= this.destinazione.y && y <= this.sorgente.y))
+        return true;
+    }
+    else if(y == this.sorgente.y || y == this.destinazione.y){
+      if((x >= this.sorgente.x && x <= this.destinazione.x) || (x >= this.destinazione.x && x <= this.sorgente.x))
+        return true;
+    }
+    else return false;
+  }
 }
 
 @Component({
@@ -36,6 +47,7 @@ export class ContentComponent implements AfterViewInit {
   private wires: Array<Wire>;
   private movimento: boolean;
   private spazio_linee: number;
+  private cancella: boolean;
 
   @Input() public width = 1520;
   @Input() public height = 750;
@@ -61,7 +73,7 @@ export class ContentComponent implements AfterViewInit {
     // Si impostano alcuni parametri della linea
     this.context.lineWidth = 3; // spessore
     this.context.lineCap = 'round'; // forma agli estremi della linea
-    this.context.strokeStyle = '#000000'; //colore
+    this.context.strokeStyle = '#000000'; // colore
 
     // Si disegna la griglia
     this.drawGrid();
@@ -73,8 +85,7 @@ export class ContentComponent implements AfterViewInit {
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
     // Se il valore di disegna è true, allora è possibile disegnare
-    canvasElement.addEventListener("mousemove", (e) => {
-      console.log("mousemove");
+    canvasElement.addEventListener('mousemove', (e) => {
       if (this.disegna) {
         this.gestisciDisegno(e);
         this.movimento = true;
@@ -82,26 +93,53 @@ export class ContentComponent implements AfterViewInit {
     }, false);
 
     // Se il tasto sinistro del mouse viene premuto, si richiama il metodo set
-    canvasElement.addEventListener("mousedown", (e) => {
-      console.log("mousedown");
-      this.set(e);
+    canvasElement.addEventListener('mousedown', (e) => {
+      let attPos = this.getFixedPos(e.clientX, e.clientY);
+      console.log(attPos);
+      if(this.cancella){
+        let daCancellare : number = -1;
+        this.wires.forEach(wire => {
+          if(wire.passaDa(attPos.x, attPos.y)){
+            daCancellare = this.wires.indexOf(wire);
+          }
+        });
+        if(daCancellare!=-1)
+          this.wires.splice(daCancellare, 1);
+        this.reDraw();
+      }
+      else this.set(e);
     }, false);
 
     // Se il tasto viene rilasciato, si chiama il metodo reset e si salvano le informazioni relative al filo
-    canvasElement.addEventListener("mouseup", (e) => {
-      console.log("mouseup");
-      if (this.movimento)
+    canvasElement.addEventListener('mouseup', (e) => {
+      if (this.movimento) {
         this.addWire();
+      }
       this.reset();
+      this.wires.forEach(wire => {
+        console.log("sx = " + wire.sorgente.x + " sy = " + wire.sorgente.y + " dx = " + wire.destinazione.x + " dy = " + wire.destinazione.y);
+      });
     }, false);
 
     // Se il cursore del mouse esce dall'area del canvas il filo viene eliminato e viene richiamato il metodo reset
-    canvasElement.addEventListener("mouseleave", (e) => {
-      console.log("mouseleave");
+    canvasElement.addEventListener('mouseleave', (e) => {
       this.reDraw();
       this.reset();
     }, false);
 
+  }
+
+  private getFixedPos(x: number, y: number) {
+    let realX = x - this.rect.left;
+    let realY = y - this.rect.top;
+    let distGridX = realX % this.spazio_linee;
+    let distGridY = realY % this.spazio_linee;
+    let fixedPos: any;
+    fixedPos = {
+      x: realX - distGridX + (distGridX > this.spazio_linee / 2 ? this.spazio_linee : 0),
+      y: realY - distGridY + (distGridY > this.spazio_linee / 2 ? this.spazio_linee : 0)
+    };
+    return fixedPos;
   }
 
   private gestisciDisegno(e: MouseEvent) {
@@ -134,7 +172,7 @@ export class ContentComponent implements AfterViewInit {
     // Poi si traccia un'altra linea verticale
     this.context.lineTo(destinazione.x, destinazione.y);
 
-    // Dopo si disegna effettivamente  
+    // Dopo si disegna effettivamente
     this.context.stroke();
   }
 
@@ -187,6 +225,7 @@ export class ContentComponent implements AfterViewInit {
 
   private drawGrid() {
     // Si imposta un tratto più leggero per tracciare la griglia
+    const lastratto = this.context.lineWidth;
     this.context.lineWidth = 0.03;
     this.context.beginPath();
 
@@ -202,13 +241,13 @@ export class ContentComponent implements AfterViewInit {
       this.context.stroke();
     }
     // Si reimposta il tratto precedente
-    this.context.lineWidth = 3;
+    this.context.lineWidth = lastratto;
   }
 
 
   // metodo provvisorio, serve solo per mostrare porte a caso al momento
   private disegnaImmagine() {
-    this.context.beginPath();
+    /*this.context.beginPath();
     this.context.moveTo(0, 0);
 
     let AND = new Image();
@@ -218,7 +257,17 @@ export class ContentComponent implements AfterViewInit {
     let OR = new Image();
     OR.src = "/assets/OR.svg";
     this.context.drawImage(OR, 0, 300);
-    this.context.stroke();
+    this.context.stroke();*/
+  }
+
+  public cancmode() {
+    this.disegna = false;
+    this.cancella = true;
+  }
+  
+  public dismode(){
+    this.disegna = true;
+    this.cancella = false;
   }
 
 }

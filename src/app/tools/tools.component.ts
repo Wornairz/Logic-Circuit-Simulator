@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ContentComponent } from '../content/content.component';
+import { MatButtonToggleGroup, MatButtonToggle } from '@angular/material';
+
 
 @Component({
   selector: 'app-tools',
@@ -14,7 +17,7 @@ export class ToolsComponent {
     .pipe(
       map(result => result.matches)
     );
-    
-  constructor(private breakpointObserver: BreakpointObserver) {}
-  
-  }
+
+  constructor(private breakpointObserver: BreakpointObserver) { }
+
+}

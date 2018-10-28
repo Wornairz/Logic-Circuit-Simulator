@@ -1,7 +1,7 @@
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav #drawer class="sidenav" fixedInViewport="false" [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
     [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="!(isHandset$ | async)">
-    <mat-toolbar color="primary">Menu</mat-toolbar>
+    <mat-toolbar color="primary">Componenti</mat-toolbar>
     <mat-nav-list>
       <mat-accordion multi=true>
 
@@ -37,8 +37,16 @@
       <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()" *ngIf="isHandset$ | async">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
-      <span>Strumenti</span>
+      <span style="margin-right: 15px;">Strumenti </span>
+      <mat-button-toggle-group >
+        <mat-button-toggle (click)="ContentComponent.dismode()"> 
+          <img src="/assets/wire.svg">
+        </mat-button-toggle>
+        <mat-button-toggle (click)="ContentComponent.cancmode()">
+          <img src="/assets/delwire.svg">
+        </mat-button-toggle>
+      </mat-button-toggle-group>
     </mat-toolbar>
-    <app-content></app-content>
+    <app-content #ContentComponent></app-content>
   </mat-sidenav-content>
 </mat-sidenav-container>

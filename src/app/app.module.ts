@@ -8,6 +8,8 @@ import { LayoutModule } from '@angular/cdk/layout';
 import { ContentComponent } from './content/content.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import { ToolsComponent } from './tools/tools.component';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+
 
 
 
@@ -27,7 +29,8 @@ import { ToolsComponent } from './tools/tools.component';
     MatSidenavModule,
     MatIconModule,
     MatListModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatButtonToggleModule
   ],
   providers: [],
   bootstrap: [AppComponent]
