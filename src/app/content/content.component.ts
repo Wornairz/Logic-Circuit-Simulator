@@ -1,32 +1,5 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, Input } from '@angular/core';
-
-
-// Forse dovremmo stabilire anche una convenzione per i nomi delle variabili
-// tipo tutto inglese/tutto italiano. Scrivere filo invece di wire mi sembrava brutto, lol
-// I nomi di alcuni metodi sono discutibili, se ne hai di migliori cambiali pure
-
-
-
-// Credo che questa class converrebbe metterla in un file a parte (?)
-class Wire {
-  public sorgente: { x: number, y: number };
-  public destinazione: { x: number, y: number };
-  constructor(sorgente, destinazione) {
-    this.sorgente = sorgente;
-    this.destinazione = destinazione;
-  }
-  public passaDa(x: number, y: number): boolean {
-    if(x == this.sorgente.x || x == this.destinazione.x){
-      if((y >= this.sorgente.y && y <= this.destinazione.y) || (y >= this.destinazione.y && y <= this.sorgente.y))
-        return true;
-    }
-    else if(y == this.sorgente.y || y == this.destinazione.y){
-      if((x >= this.sorgente.x && x <= this.destinazione.x) || (x >= this.destinazione.x && x <= this.sorgente.x))
-        return true;
-    }
-    else return false;
-  }
-}
+import { Wire } from "./wire";
 
 @Component({
   selector: 'app-content',
@@ -61,7 +34,8 @@ export class ContentComponent implements AfterViewInit {
     this.rect = canvasElement.getBoundingClientRect();
     this.disegna = false;
     this.movimento = false;
-    this.spazio_linee = 50;
+    this.cancella = false;
+    this.spazio_linee = 30;
     this.prevPos = null;
     this.currentPos = null;
     this.wires = Array();
@@ -71,17 +45,16 @@ export class ContentComponent implements AfterViewInit {
     canvasElement.height = this.height;
 
     // Si impostano alcuni parametri della linea
-    this.context.lineWidth = 3; // spessore
+    this.context.lineWidth = Wire.spessore; // spessore
     this.context.lineCap = 'round'; // forma agli estremi della linea
     this.context.strokeStyle = '#000000'; // colore
+    this.context.fillStyle = '#FFFFFF'; // colore riempimento 
 
     // Si disegna la griglia
     this.drawGrid();
     // Si richiama il metodo in cui verrano gestiti gli eventi
     this.gestisciEventi(canvasElement);
   }
-
-
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
     // Se il valore di disegna è true, allora è possibile disegnare
@@ -94,17 +67,8 @@ export class ContentComponent implements AfterViewInit {
 
     // Se il tasto sinistro del mouse viene premuto, si richiama il metodo set
     canvasElement.addEventListener('mousedown', (e) => {
-      let attPos = this.getFixedPos(e.clientX, e.clientY);
-      console.log(attPos);
-      if(this.cancella){
-        let daCancellare : number = -1;
-        this.wires.forEach(wire => {
-          if(wire.passaDa(attPos.x, attPos.y)){
-            daCancellare = this.wires.indexOf(wire);
-          }
-        });
-        if(daCancellare!=-1)
-          this.wires.splice(daCancellare, 1);
+      if (this.cancella) {
+        this.removeWire(e);
         this.reDraw();
       }
       else this.set(e);
@@ -113,12 +77,12 @@ export class ContentComponent implements AfterViewInit {
     // Se il tasto viene rilasciato, si chiama il metodo reset e si salvano le informazioni relative al filo
     canvasElement.addEventListener('mouseup', (e) => {
       if (this.movimento) {
-        this.addWire();
+        if (this.prevPos.x == this.currentPos.x && this.prevPos.y == this.currentPos.y) {
+          this.reDraw();
+        }
+        else this.addWire();
       }
       this.reset();
-      this.wires.forEach(wire => {
-        console.log("sx = " + wire.sorgente.x + " sy = " + wire.sorgente.y + " dx = " + wire.destinazione.x + " dy = " + wire.destinazione.y);
-      });
     }, false);
 
     // Se il cursore del mouse esce dall'area del canvas il filo viene eliminato e viene richiamato il metodo reset
@@ -129,29 +93,9 @@ export class ContentComponent implements AfterViewInit {
 
   }
 
-  private getFixedPos(x: number, y: number) {
-    let realX = x - this.rect.left;
-    let realY = y - this.rect.top;
-    let distGridX = realX % this.spazio_linee;
-    let distGridY = realY % this.spazio_linee;
-    let fixedPos: any;
-    fixedPos = {
-      x: realX - distGridX + (distGridX > this.spazio_linee / 2 ? this.spazio_linee : 0),
-      y: realY - distGridY + (distGridY > this.spazio_linee / 2 ? this.spazio_linee : 0)
-    };
-    return fixedPos;
-  }
-
   private gestisciDisegno(e: MouseEvent) {
     // Si salvano le posizioni relative al canvas del mouse nella variabile currentPos
-    let realX = e.clientX - this.rect.left;
-    let realY = e.clientY - this.rect.top;
-    let distGridX = realX % this.spazio_linee;
-    let distGridY = realY % this.spazio_linee;
-    this.currentPos = {
-      x: realX - distGridX + (distGridX > this.spazio_linee / 2 ? this.spazio_linee : 0),
-      y: realY - distGridY + (distGridY > this.spazio_linee / 2 ? this.spazio_linee : 0)
-    };
+    this.currentPos = this.getFixedPos(e.clientX, e.clientY);
     // Vengono ridisegnati i componenti precedenti
     this.reDraw();
     // Viene disegnato il nuovo filo
@@ -162,6 +106,7 @@ export class ContentComponent implements AfterViewInit {
   private disegnaLinea(sorgente: { x: number, y: number }, destinazione: { x: number, y: number }) {
     // Inizia un nuovo percorso
     this.context.beginPath();
+    this.context.lineWidth = Wire.spessore;
 
     // Si inizia a disegnare dalle coordinate di sorgente...
     this.context.moveTo(sorgente.x, sorgente.y);
@@ -174,6 +119,15 @@ export class ContentComponent implements AfterViewInit {
 
     // Dopo si disegna effettivamente
     this.context.stroke();
+
+    // Si disegnano i due quadrati alle estremità del percorso
+    this.context.beginPath();
+    this.context.lineWidth = 2.3;
+    this.context.rect(sorgente.x - 4, sorgente.y - 4, 8, 8);
+    this.context.fill();
+    this.context.rect(destinazione.x - 4, destinazione.y - 4, 8, 8);
+    this.context.fill();
+    this.context.stroke();
   }
 
   private reDraw() {
@@ -181,8 +135,7 @@ export class ContentComponent implements AfterViewInit {
     this.context.clearRect(0, 0, this.width, this.height);
     // Viene disegnata la griglia
     this.drawGrid();
-    // METODO PROVVISORIO
-    this.disegnaImmagine();
+    //this.drawComponent();
     // Vengono ridisegnati i fili precedenti
     this.drawWires();
   }
@@ -200,14 +153,7 @@ export class ContentComponent implements AfterViewInit {
 
   private set(e: MouseEvent) {
     // Vengono salvate le coordinate del mouse al momento della pressione del tasto
-    let realX = e.clientX - this.rect.left;
-    let realY = e.clientY - this.rect.top;
-    let distGridX = realX % this.spazio_linee;
-    let distGridY = realY % this.spazio_linee;
-    this.prevPos = {
-      x: realX - distGridX + (distGridX > this.spazio_linee / 2 ? this.spazio_linee : 0),
-      y: realY - distGridY + (distGridY > this.spazio_linee / 2 ? this.spazio_linee : 0)
-    };
+    this.prevPos = this.getFixedPos(e.clientX, e.clientY);
     // Si permette il disegno impostando il valore di disegna a true
     this.disegna = true;
   }
@@ -218,55 +164,74 @@ export class ContentComponent implements AfterViewInit {
       this.disegnaLinea(wire.sorgente, wire.destinazione);
     });
   }
+
   private addWire() {
     // Si salvano le informazioni relative al filo nell'array
     this.wires.push(new Wire(this.prevPos, this.currentPos));
   }
 
+  private removeWire(e: MouseEvent) {
+    // Si elimina il filo selezionato, se esiste, che è stato disegnato per ultimo 
+    let daCancellare: number = -1;
+    this.wires.forEach(wire => {
+      if (wire.passaDa(e.clientX - this.rect.left, e.clientY - this.rect.top)) {
+        daCancellare = this.wires.indexOf(wire);
+      }
+    });
+    if (daCancellare != -1)
+      this.wires.splice(daCancellare, 1);
+  }
+
+  private getFixedPos(x: number, y: number) {
+    // Posizioni relative al canvas
+    let realX = x - this.rect.left;
+    let realY = y - this.rect.top;
+
+    // Spazio in mezzo alle linee
+    let distGridX = realX % this.spazio_linee;
+    let distGridY = realY % this.spazio_linee;
+    let fixedPos: any;
+
+    // Posizione arrotondata alla linee più vicine
+    fixedPos = {
+      x: realX - distGridX + (distGridX > this.spazio_linee / 2 ? this.spazio_linee : 0),
+      y: realY - distGridY + (distGridY > this.spazio_linee / 2 ? this.spazio_linee : 0)
+    };
+    return fixedPos;
+  }
+
   private drawGrid() {
     // Si imposta un tratto più leggero per tracciare la griglia
-    const lastratto = this.context.lineWidth;
-    this.context.lineWidth = 0.03;
+    this.context.lineWidth = 0.3;
     this.context.beginPath();
 
-    for (let i = 0; i < this.height; i += this.spazio_linee) {
-      this.context.moveTo(1, i);
+    for (let i = 0.5; i < this.height; i += this.spazio_linee) {
+      this.context.moveTo(0, i);
       this.context.lineTo(this.width, i);
-      this.context.stroke();
     }
-
-    for (let i = 0; i < this.width; i += this.spazio_linee) {
-      this.context.moveTo(i, 1);
+    for (let i = 0.5; i < this.width; i += this.spazio_linee) {
+      this.context.moveTo(i, 0);
       this.context.lineTo(i, this.height);
-      this.context.stroke();
     }
-    // Si reimposta il tratto precedente
-    this.context.lineWidth = lastratto;
+    // Si disegna effettivamente
+    this.context.stroke();
   }
 
+  /*private drawComponent() {
+    // PRIMO TENTATIVO PER DISEGNARE I COMPONENTI
+    let immagine = new Image();
+    immagine.src = 'assets/AND2.svg';
 
-  // metodo provvisorio, serve solo per mostrare porte a caso al momento
-  private disegnaImmagine() {
-    /*this.context.beginPath();
-    this.context.moveTo(0, 0);
-
-    let AND = new Image();
-    AND.src = "/assets/AND.svg";
-    this.context.drawImage(AND, 0, 0);
-
-    let OR = new Image();
-    OR.src = "/assets/OR.svg";
-    this.context.drawImage(OR, 0, 300);
-    this.context.stroke();*/
-  }
+    let altezza = this.spazio_linee * 5;
+    this.context.drawImage(immagine, 30, 48, altezza, immagine.height / immagine.width * altezza);
+  }*/
 
   public cancmode() {
     this.disegna = false;
     this.cancella = true;
   }
-  
-  public dismode(){
-    this.disegna = true;
+
+  public dismode() {
     this.cancella = false;
   }
 
