@@ -9,6 +9,7 @@ import { ContentComponent } from './content/content.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import { ToolsComponent } from './tools/tools.component';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { Globals } from './globals';
 
 
 
@@ -32,7 +33,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
     MatExpansionModule,
     MatButtonToggleModule
   ],
-  providers: [],
+  providers: [Globals],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
