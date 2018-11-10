@@ -20,6 +20,8 @@ export class ContentComponent implements AfterViewInit {
   private prevPos: { x: number, y: number };
   private context: CanvasRenderingContext2D;
   private componenti: Array<Componente>;
+  private selezionato: Componente;
+  private spostamento: boolean;
   private wires: Array<Wire>;
   private movimento: boolean;
   private rect: ClientRect;
@@ -41,11 +43,13 @@ export class ContentComponent implements AfterViewInit {
     this.disegna = false;
     this.movimento = false;
     this.modalita = 0;
+    this.spostamento = false;
     this.boxSize = Globals.spazio_linee / 4;
     this.prevPos = null;
     this.currentPos = null;
     this.wires = Array();
     this.componenti = Array();
+    this.selezionato = null;
     this.dx = 0;
     this.dy = 0;
 
@@ -71,24 +75,13 @@ export class ContentComponent implements AfterViewInit {
 
     // Si impostano le posizioni relative alla griglia del componente. Es: [0, 2] vuol dire prima riga-terza colonna nella griglia del componente
     let i1 = [0, 1]; let i2 = [0, 3];
-    this.addComponent(4, [i1, i2], { x: 120, y: 60 }, 'assets/NAND.svg');
+    this.addComponent(4, [i1, i2], { x: 120, y: 60 }, 'assets/AND.svg');
     this.addComponent(4, [i1, i2], { x: 120, y: 300 }, 'assets/INPUT.svg');
     // Per le porte *OR la riga è spostata, per via della loro forma
     let i3 = [0.5, 1]; let i4 = [0.5, 3];
     this.addComponent(4, [i3, i4], { x: 120, y: 180 }, 'assets/NOR.svg');
     this.addComponent(4, [i3, i4], { x: 260, y: 180 }, 'assets/XOR.svg');
     this.addComponent(4, [i1, i2], { x: 420, y: 180 }, 'assets/NOT.svg');
-  }
-
-  private enableMovement(e: MouseEvent) {
-    /*let realX = e.clientX - this.rect.left;
-    let realY = e.clientY - this.rect.top;
-    this.componenti.forEach((componente) => {
-      if (componente.collide(realX, realY)) {
-        this.prevPos = {x: realX, y: realY};
-        this.movimento = true;
-      }
-    });*/
   }
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
@@ -98,6 +91,10 @@ export class ContentComponent implements AfterViewInit {
         this.gestisciDisegno(e);
         this.movimento = true;
       }
+      else if (this.spostamento) {
+        this.spostaElemento(e);
+        this.reDraw();
+      }
     });
 
     // Se il tasto sinistro del mouse viene premuto, si richiama il metodo set
@@ -106,7 +103,7 @@ export class ContentComponent implements AfterViewInit {
       switch (this.modalita) {
         case 0: this.enableDrawing(e);
           break;
-        case 1: this.removeWire(e);
+        case 1: this.removeElement(e);
           this.reDraw();
           break;
         case 2: this.enableMovement(e);
@@ -122,13 +119,13 @@ export class ContentComponent implements AfterViewInit {
         }
         else this.addWire();
       }
-      this.disableDrawing();
+      this.reset();
     });
 
     // Se il cursore del mouse esce dall'area del canvas il filo viene eliminato e viene richiamato il metodo reset
     canvasElement.addEventListener('mouseleave', (e) => {
       this.reDraw();
-      this.disableDrawing();
+      this.reset();
     });
     // Il terzo parametro, useCapture, è false di default
   }
@@ -142,6 +139,12 @@ export class ContentComponent implements AfterViewInit {
     this.calcola_spostamento();
     // Viene disegnato il nuovo filo
     this.disegnaLinea(this.prevPos, this.currentPos, this.dx > this.dy);
+  }
+
+  private spostaElemento(e: MouseEvent) {
+    let fixedPos = this.getFixedPos(e.clientX, e.clientY);
+    let pos = { x: fixedPos.x - this.dx, y: fixedPos.y - this.dy };
+    this.selezionato.posizione = pos;
   }
 
   private disegnaLinea(sorgente: { x: number, y: number }, destinazione: { x: number, y: number }, spostamento_orizzontale) {
@@ -180,7 +183,7 @@ export class ContentComponent implements AfterViewInit {
     this.drawWires();
   }
 
-  private disableDrawing() {
+  private reset() {
     // Viene impedita la possibilità di disegnare impostando il valore di disegna a false
     this.disegna = false;
     // Si imposta a false il boolean che indica se c'è stato un movimento dopo il click del mouse
@@ -188,7 +191,22 @@ export class ContentComponent implements AfterViewInit {
     // Viene resettato anche il valore della posizione precedente
     this.prevPos = null;
     // Si resetta il valore degli spostamenti
+    this.spostamento = false;
     this.dx = this.dy = 0;
+  }
+
+  private enableMovement(e: MouseEvent) {
+    let realX = e.clientX - this.rect.left;
+    let realY = e.clientY - this.rect.top;
+    this.componenti.forEach((componente) => {
+      if (componente.collide(realX, realY)) {
+        let fixedPos = this.getFixedPos(e.clientX, e.clientY);
+        this.dx = fixedPos.x - componente.posizione.x;
+        this.dy = fixedPos.y - componente.posizione.y;
+        this.selezionato = componente;
+        this.spostamento = true;
+      }
+    });
   }
 
   private enableDrawing(e: MouseEvent) {
@@ -211,16 +229,27 @@ export class ContentComponent implements AfterViewInit {
     this.wires.push(new Wire(this.prevPos, this.currentPos, this.dx > this.dy));
   }
 
-  private removeWire(e: MouseEvent) {
-    // Si elimina il filo selezionato, se esiste, che è stato disegnato per ultimo 
+  private removeElement(e: MouseEvent) {
+    // Si elimina il filo selezionato, se esiste, che è stato disegnato per ultimo
+    let realX = e.clientX - this.rect.left;
+    let realY = e.clientY - this.rect.top;
+    let daCancellare = this.elementoSelezionato(this.componenti, realX, realY);
+    if (daCancellare != -1)
+      this.componenti.splice(daCancellare, 1);
+    else {
+      daCancellare = this.elementoSelezionato(this.wires, realX, realY);
+      if (daCancellare != -1)
+        this.wires.splice(daCancellare, 1);
+    }
+  }
+  private elementoSelezionato(elementi, realX, realY) {
     let daCancellare: number = -1;
-    this.wires.forEach(wire => {
-      if (wire.passaDa(e.clientX - this.rect.left, e.clientY - this.rect.top)) {
-        daCancellare = this.wires.indexOf(wire);
+    elementi.forEach(elemento => {
+      if (elemento.collide(realX, realY)) {
+        daCancellare = elementi.indexOf(elemento);
       }
     });
-    if (daCancellare != -1)
-      this.wires.splice(daCancellare, 1);
+    return daCancellare;
   }
 
   private getFixedPos(x: number, y: number) {
@@ -260,6 +289,7 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private drawBox(posizione: { x: number, y: number }, lato: number) {
+    // Sicuro per il web, lol
     let colore = '#0066ffa0';
     this.context.strokeStyle = colore;
     this.context.fillStyle = colore;
@@ -276,10 +306,10 @@ export class ContentComponent implements AfterViewInit {
 
       // Si scorre l'array degli input, per alcuni componenti possono essercene più di 2/3
       componente.input.forEach((input) => {
-        this.drawBox(input, this.boxSize);
+        this.drawBox(componente.absolutePosition(input), this.boxSize);
       });
 
-      this.drawBox(componente.output, this.boxSize);
+      this.drawBox(componente.absolutePosition(componente.output), this.boxSize);
       this.context.stroke();
     });
   }
@@ -300,9 +330,9 @@ export class ContentComponent implements AfterViewInit {
   }
 
   public changeMode(value) {
-    // 0: disegno, 1: cancellazione, 2: movimento
+    // 0: disegno, 1: cancellazione, 2: spostamento
     this.modalita = value;
-    this.disableDrawing();
+    this.reset();
   }
 
 }

@@ -9,7 +9,7 @@ export class Wire {
         this.destinazione = destinazione;
         this.spostamento_orizzontale = spostamento_orizzontale;
     }
-    public passaDa(x: number, y: number): boolean {
+    public collide(x: number, y: number): boolean {
         let a = this.sorgente.x;
         let b = this.destinazione.y;
         if (this.spostamento_orizzontale) {

@@ -15,11 +15,15 @@ export class Componente {
         this.width = this.normalizzaLarghezza();
         this.input = Array();
         this.posizione = posizione;
-        this.output = { x: this.posizione.x + this.width, y: this.posizione.y + 2 * Globals.spazio_linee };
+        this.output = { x: this.width/Globals.spazio_linee, y: 2 };
     }
     public setInput(relativeX, relativeY) {
-        let punto = { x: this.posizione.x + relativeX * Globals.spazio_linee, y: this.posizione.y + relativeY * Globals.spazio_linee };
+        let punto = {x: relativeX, y: relativeY};
         this.input.push(punto);
+    }
+    public absolutePosition(relativePosition){
+        let punto = { x: this.posizione.x + relativePosition.x * Globals.spazio_linee, y: this.posizione.y + relativePosition.y * Globals.spazio_linee };
+        return punto;
     }
 
     private normalizzaLarghezza() {
