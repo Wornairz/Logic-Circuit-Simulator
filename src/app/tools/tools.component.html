@@ -38,12 +38,15 @@
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
       <span style="margin-right: 15px;">Strumenti </span>
-      <mat-button-toggle-group >
-        <mat-button-toggle (click)="ContentComponent.dismode()"> 
+      <mat-button-toggle-group value="0" >
+        <mat-button-toggle value="0" (click)="ContentComponent.changeMode(0)">
           <img src="/assets/wire.svg">
         </mat-button-toggle>
-        <mat-button-toggle (click)="ContentComponent.cancmode()">
+        <mat-button-toggle value="1" (click)="ContentComponent.changeMode(1)">
           <img src="/assets/delwire.svg">
+        </mat-button-toggle>
+        <mat-button-toggle value="2" (click)="ContentComponent.changeMode(2)">
+          <img src="/assets/move.svg">
         </mat-button-toggle>
       </mat-button-toggle-group>
     </mat-toolbar>
