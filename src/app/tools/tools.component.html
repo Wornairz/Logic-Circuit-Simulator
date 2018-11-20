@@ -10,12 +10,12 @@
             Gates
           </mat-expansion-panel-header>
 
-          <button mat-button><img src="/assets/AND.svg"></button>
-          <button mat-button><img src="/assets/OR.svg"></button>
-          <button mat-button><img src="/assets/NAND.svg"></button>
-          <button mat-button><img src="/assets/NOR.svg"></button>
-          <button mat-button><img src="/assets/XOR.svg"></button>
-          <button mat-button><img src="/assets/NOT.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'AND')"><img src="/assets/AND.svg"> </button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'OR')"><img src="/assets/OR.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NAND')"><img src="/assets/NAND.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NOR')"><img src="/assets/NOR.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'XOR')"><img src="/assets/XOR.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NOT')"><img src="/assets/NOT.svg"></button>
 
         </mat-expansion-panel>
 
@@ -24,8 +24,8 @@
             Input & Output
           </mat-expansion-panel-header>
 
-          <button mat-button><img src="/assets/INPUT.svg"></button>
-          <button mat-button><img src="/assets/INPUTN.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'INPUT')"><img src="/assets/INPUT.svg"></button>
+          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'INPUTN')"><img src="/assets/INPUTN.svg"></button>
 
         </mat-expansion-panel>
 

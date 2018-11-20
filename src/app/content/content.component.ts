@@ -1,6 +1,6 @@
 import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Componente } from "./componente";
-import { Wire } from "./wire";
+import { Componente } from './componente';
+import { Wire } from './wire';
 import { Globals } from '../globals';
 
 
@@ -61,7 +61,7 @@ export class ContentComponent implements AfterViewInit {
     this.context.lineWidth = Wire.spessore; // spessore
     this.context.lineCap = 'round'; // forma agli estremi della linea
 
-    this.metodoDiProva();
+    // this.metodoDiProva();
     // Si disegna la griglia
     this.drawGrid();
     // Si disegnano i componenti, per ora lo richiamo qui per provare
@@ -73,15 +73,16 @@ export class ContentComponent implements AfterViewInit {
   private metodoDiProva() {
     // Queste cose verranno poi fatte in base al componente scelto nella toolbar
 
-    // Si impostano le posizioni relative alla griglia del componente. Es: [0, 2] vuol dire prima riga-terza colonna nella griglia del componente
-    let i1 = [0, 1]; let i2 = [0, 3];
-    this.addComponent(4, [i1, i2], { x: 120, y: 60 }, 'assets/AND.svg');
-    this.addComponent(4, [i1, i2], { x: 120, y: 300 }, 'assets/INPUT.svg');
+    // Si impostano le posizioni relative alla griglia del componente.
+    // Es: [0, 2] vuol dire prima riga-terza colonna nella griglia del componente
+    const i1 = [0, 1]; const i2 = [0, 3];
+    this.addComponent(4, [i1, i2], { x: 120, y: 60 }, '/assets/AND.svg');
+    this.addComponent(4, [i1, i2], { x: 120, y: 300 }, '/assets/INPUT.svg');
     // Per le porte *OR la riga è spostata, per via della loro forma
-    let i3 = [0.5, 1]; let i4 = [0.5, 3];
-    this.addComponent(4, [i3, i4], { x: 120, y: 180 }, 'assets/NOR.svg');
-    this.addComponent(4, [i3, i4], { x: 260, y: 180 }, 'assets/XOR.svg');
-    this.addComponent(4, [i1, i2], { x: 420, y: 180 }, 'assets/NOT.svg');
+    const i3 = [0.5, 1]; const i4 = [0.5, 3];
+    this.addComponent(4, [i3, i4], { x: 120, y: 180 }, '/assets/NOR.svg');
+    this.addComponent(4, [i3, i4], { x: 260, y: 180 }, '/assets/XOR.svg');
+    this.addComponent(4, [i1, i2], { x: 420, y: 180 }, '/assets/NOT.svg');
   }
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
@@ -90,10 +91,13 @@ export class ContentComponent implements AfterViewInit {
       if (this.disegna) {
         this.gestisciDisegno(e);
         this.movimento = true;
-      }
-      else if (this.spostamento) {
+      } else if (this.spostamento) {
         this.spostaElemento(e);
         this.reDraw();
+      } else if (this.modalita === 3) {
+        this.reDraw();
+        this.selezionato.posizione = this.getFixedPos(e.clientX, e.clientY);
+        this.disegnaComponenteTemp(this.selezionato);
       }
     });
 
@@ -108,16 +112,19 @@ export class ContentComponent implements AfterViewInit {
           break;
         case 2: this.enableMovement(e);
           break;
+        case 3: {
+          this.componenti.push(this.selezionato);
+          this.selezionato = null;
+        }
       }
     });
 
     // Se il tasto viene rilasciato, si chiama il metodo reset e si salvano le informazioni relative al filo
     canvasElement.addEventListener('mouseup', (e) => {
       if (this.movimento) {
-        if (this.prevPos.x == this.currentPos.x && this.prevPos.y == this.currentPos.y) {
+        if (this.prevPos.x === this.currentPos.x && this.prevPos.y === this.currentPos.y) {
           this.reDraw();
-        }
-        else this.addWire();
+        } else { this.addWire(); }
       }
       this.reset();
     });
@@ -142,8 +149,8 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private spostaElemento(e: MouseEvent) {
-    let fixedPos = this.getFixedPos(e.clientX, e.clientY);
-    let pos = { x: fixedPos.x - this.dx, y: fixedPos.y - this.dy };
+    const fixedPos = this.getFixedPos(e.clientX, e.clientY);
+    const pos = { x: fixedPos.x - this.dx, y: fixedPos.y - this.dy };
     this.selezionato.posizione = pos;
   }
 
@@ -158,8 +165,11 @@ export class ContentComponent implements AfterViewInit {
     // ... fino alle coordinate della x di destinazione (linea orizzontale)
 
     // Se lo spostamento tende verso destra, allora si disegna prima una linea orizzontale
-    if (spostamento_orizzontale) this.context.lineTo(destinazione.x, sorgente.y);
-    else this.context.lineTo(sorgente.x, destinazione.y);
+    if (spostamento_orizzontale) {
+      this.context.lineTo(destinazione.x, sorgente.y);
+    } else {
+      this.context.lineTo(sorgente.x, destinazione.y);
+    }
 
     this.context.lineTo(destinazione.x, destinazione.y);
     // Dopo si disegna effettivamente
@@ -196,11 +206,11 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private enableMovement(e: MouseEvent) {
-    let realX = e.clientX - this.rect.left;
-    let realY = e.clientY - this.rect.top;
+    const realX = e.clientX - this.rect.left;
+    const realY = e.clientY - this.rect.top;
     this.componenti.forEach((componente) => {
       if (componente.collide(realX, realY)) {
-        let fixedPos = this.getFixedPos(e.clientX, e.clientY);
+        const fixedPos = this.getFixedPos(e.clientX, e.clientY);
         this.dx = fixedPos.x - componente.posizione.x;
         this.dy = fixedPos.y - componente.posizione.y;
         this.selezionato = componente;
@@ -231,19 +241,20 @@ export class ContentComponent implements AfterViewInit {
 
   private removeElement(e: MouseEvent) {
     // Si elimina il filo selezionato, se esiste, che è stato disegnato per ultimo
-    let realX = e.clientX - this.rect.left;
-    let realY = e.clientY - this.rect.top;
+    const realX = e.clientX - this.rect.left;
+    const realY = e.clientY - this.rect.top;
     let daCancellare = this.elementoSelezionato(this.componenti, realX, realY);
-    if (daCancellare != -1)
+    if (daCancellare !== -1) {
       this.componenti.splice(daCancellare, 1);
-    else {
+    } else {
       daCancellare = this.elementoSelezionato(this.wires, realX, realY);
-      if (daCancellare != -1)
+      if (daCancellare !== -1) {
         this.wires.splice(daCancellare, 1);
+      }
     }
   }
   private elementoSelezionato(elementi, realX, realY) {
-    let daCancellare: number = -1;
+    let daCancellare = -1;
     elementi.forEach(elemento => {
       if (elemento.collide(realX, realY)) {
         daCancellare = elementi.indexOf(elemento);
@@ -254,12 +265,12 @@ export class ContentComponent implements AfterViewInit {
 
   private getFixedPos(x: number, y: number) {
     // Posizioni relative al canvas
-    let realX = x - this.rect.left;
-    let realY = y - this.rect.top;
+    const realX = x - this.rect.left;
+    const realY = y - this.rect.top;
 
     // Spazio in mezzo alle linee
-    let distGridX = realX % Globals.spazio_linee;
-    let distGridY = realY % Globals.spazio_linee;
+    const distGridX = realX % Globals.spazio_linee;
+    const distGridY = realY % Globals.spazio_linee;
     let fixedPos: any;
 
     // Posizione arrotondata alla linee più vicine
@@ -290,7 +301,7 @@ export class ContentComponent implements AfterViewInit {
 
   private drawBox(posizione: { x: number, y: number }, lato: number) {
     // Sicuro per il web, lol
-    let colore = '#0066ffa0';
+    const colore = '#0066ffa0';
     this.context.strokeStyle = colore;
     this.context.fillStyle = colore;
     this.context.lineWidth = 3;
@@ -313,25 +324,34 @@ export class ContentComponent implements AfterViewInit {
       this.context.stroke();
     });
   }
-
+// 2.89
   private calcola_spostamento() {
-    if (this.dx == 0 && this.dy == 0) {
+    if (this.dx === 0 && this.dy === 0) {
       this.dx = Math.abs(this.prevPos.x - this.currentPos.x);
       this.dy = Math.abs(this.prevPos.y - this.currentPos.y);
     }
   }
 
   private addComponent(numero_quadrati, input, posizione_iniziale, percorso) {
-    let c = new Componente(numero_quadrati, percorso, posizione_iniziale);
+    const c = new Componente(numero_quadrati, percorso, posizione_iniziale);
+    // tslint:disable-next-line:no-shadowed-variable
     input.forEach((input) => {
       c.setInput(input[0], input[1]);
     });
     this.componenti.push(c);
   }
 
-  public changeMode(value) {
-    // 0: disegno, 1: cancellazione, 2: spostamento
+  public disegnaComponenteTemp(componente: Componente) {
+    this.context.drawImage(componente.immagine, componente.posizione.x, componente.posizione.y, componente.width, componente.height);
+  }
+
+  public changeMode(value: number, componente?: string)  {
+    // 0: disegno, 1: cancellazione, 2: spostamento, 3: aggiungi componente
     this.modalita = value;
+    if (value === 3) {
+       // bisogna rimuovere la class "checked" dal mat-button-group 
+       this.selezionato = new Componente(4, '/assets/' + componente + '.svg', { x: 0, y: 0 });
+    }
     this.reset();
   }
 

@@ -15,27 +15,29 @@ export class Componente {
         this.width = this.normalizzaLarghezza();
         this.input = Array();
         this.posizione = posizione;
-        this.output = { x: this.width/Globals.spazio_linee, y: 2 };
+        this.output = { x: this.width / Globals.spazio_linee, y: 2 };
     }
     public setInput(relativeX, relativeY) {
-        let punto = {x: relativeX, y: relativeY};
+        const punto = {x: relativeX, y: relativeY};
         this.input.push(punto);
     }
-    public absolutePosition(relativePosition){
-        let punto = { x: this.posizione.x + relativePosition.x * Globals.spazio_linee, y: this.posizione.y + relativePosition.y * Globals.spazio_linee };
+    public absolutePosition(relativePosition) {
+        const punto = { x: this.posizione.x + relativePosition.x * Globals.spazio_linee,
+                      y: this.posizione.y + relativePosition.y * Globals.spazio_linee };
         return punto;
     }
 
     private normalizzaLarghezza() {
         // Si imposta il valore della larghezza in multipli di spazio_linee
         let larghezza = (this.immagine.width / this.immagine.height) * this.height;
-        let eccesso = larghezza % Globals.spazio_linee;
+        const eccesso = larghezza % Globals.spazio_linee;
         larghezza = larghezza - eccesso + (eccesso > Globals.spazio_linee / 2 ? Globals.spazio_linee : 0);
         return larghezza;
     }
 
     public collide(x: number, y: number) {
-        if (x >= this.posizione.x && x <= this.posizione.x + this.width)
+        if (x >= this.posizione.x && x <= this.posizione.x + this.width) {
             return (y >= this.posizione.y && y <= this.posizione.y + this.height);
+        }
     }
 }
