@@ -10,12 +10,12 @@
             Gates
           </mat-expansion-panel-header>
 
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'AND')"><img src="/assets/AND.svg"> </button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'OR')"><img src="/assets/OR.svg"></button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NAND')"><img src="/assets/NAND.svg"></button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NOR')"><img src="/assets/NOR.svg"></button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'XOR')"><img src="/assets/XOR.svg"></button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'NOT')"><img src="/assets/NOT.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('AND',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/AND.svg"> </button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('OR',   $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/OR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NAND', $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NAND.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NOR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('XOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/XOR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NOT',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NOT.svg"></button>
 
         </mat-expansion-panel>
 
@@ -24,8 +24,8 @@
             Input & Output
           </mat-expansion-panel-header>
 
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'INPUT')"><img src="/assets/INPUT.svg"></button>
-          <button mat-button value="3" (click)="ContentComponent.changeMode(3, 'INPUTN')"><img src="/assets/INPUTN.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUT',  $event) " (mouseup) ="ContentComponent.reset()"><img src="/assets/INPUT.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUTN', $event)"  (mouseup) ="ContentComponent.reset()"><img src="/assets/INPUTN.svg"></button>
 
         </mat-expansion-panel>
 
@@ -43,7 +43,7 @@
           <img src="/assets/wire.svg">
         </mat-button-toggle>
         <mat-button-toggle value="1" (click)="ContentComponent.changeMode(1)">
-          <img src="/assets/delwire.svg">
+          <img src="/assets/delete.svg">
         </mat-button-toggle>
         <mat-button-toggle value="2" (click)="ContentComponent.changeMode(2)">
           <img src="/assets/move.svg">

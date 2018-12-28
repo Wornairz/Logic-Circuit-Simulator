@@ -1,30 +1,26 @@
-import { Globals } from '../globals';
+import { Globals, position } from '../globals';
+import { Pin } from './pin';
 
 export class Componente {
-    public posizione: { x: number, y: number };
+    public posizione: position;
     public width: number;
     public height: number;
-    public input: Array<any>;
-    public output: { x: number, y: number };
+    public input: Array<Pin>;
+    public output: Pin;
     public immagine: HTMLImageElement;
 
-    constructor(numero_quadrati: number, percorso: string, posizione) {
+    constructor(numero_quadrati: number, percorso: string, posizione: position) {
         this.immagine = new Image();
         this.immagine.src = percorso;
         this.height = Globals.spazio_linee * numero_quadrati;
         this.width = this.normalizzaLarghezza();
         this.input = Array();
         this.posizione = posizione;
-        this.output = { x: this.width / Globals.spazio_linee, y: 2 };
+        this.output = new Pin({ x: this.width / Globals.spazio_linee, y: this.height / Globals.spazio_linee / 2 });
     }
-    public setInput(relativeX, relativeY) {
-        const punto = {x: relativeX, y: relativeY};
-        this.input.push(punto);
-    }
-    public absolutePosition(relativePosition) {
-        const punto = { x: this.posizione.x + relativePosition.x * Globals.spazio_linee,
-                      y: this.posizione.y + relativePosition.y * Globals.spazio_linee };
-        return punto;
+    public addInput(relativeX: position, relativeY: position) {
+        const punto = { x: relativeX, y: relativeY };
+        this.input.push(new Pin(punto));
     }
 
     private normalizzaLarghezza() {
@@ -40,4 +36,25 @@ export class Componente {
             return (y >= this.posizione.y && y <= this.posizione.y + this.height);
         }
     }
+    public updatePosition(newPos: position) {
+        if (newPos.x >= 0 && newPos.x + this.width <= Globals.width)
+            this.posizione.x = newPos.x;
+        if (newPos.y >= 0 && newPos.y + this.height <= Globals.height)
+            this.posizione.y = newPos.y;
+    }
+
+    public draw(context: CanvasRenderingContext2D) {
+        context.beginPath();
+        context.drawImage(this.immagine, this.posizione.x, this.posizione.y, this.width, this.height);
+
+        // Si scorre l'array degli input, per alcuni componenti possono essercene più di 2/3
+        this.input.forEach((input) => {
+            input.drawInComponent(context, this.posizione);
+        });
+
+        this.output.drawInComponent(context, this.posizione);
+        context.stroke();
+    }
+
+
 }
