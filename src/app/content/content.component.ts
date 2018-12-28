@@ -2,6 +2,7 @@ import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Componente } from './componente';
 import { Wire } from './wire';
 import { Globals, position } from '../globals';
+import { Pin } from './pin';
 
 
 
@@ -46,6 +47,7 @@ export class ContentComponent implements AfterViewInit {
 
 
     // Si imposta la larghezza e l'altezza del canvas
+    console.log(window.outerWidth);
     canvasElement.width = Globals.width;
     canvasElement.height = Globals.height;
 
@@ -60,7 +62,6 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
-
     canvasElement.addEventListener('mousedown', (e) => {
       e.preventDefault();
       // 0: abilitazione_disegno, 1: cancellazione, 2: abilitazione_movimento
@@ -111,6 +112,14 @@ export class ContentComponent implements AfterViewInit {
       this.reset();
     });
 
+    canvasElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) Globals.scaling += 5;
+      else if (Globals.scaling > 5) Globals.scaling -= 5;
+      this.reDraw();
+      this.reset();// ?
+    });
+
   }
 
   private gestisciDisegno(e: MouseEvent) {
@@ -141,10 +150,9 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private enableMovement(e: MouseEvent) {
-    const realX = e.clientX - this.rect.left;
-    const realY = e.clientY - this.rect.top;
+    const canvasPos = this.getCanvasPos(e.clientX, e.clientY);
     this.componenti.forEach((componente) => {
-      if (componente.collide(realX, realY)) {
+      if (componente.collide(canvasPos.x, canvasPos.y)) {
         const fixedPos = this.getFixedPos(e.clientX, e.clientY);
         this.dx = fixedPos.x - componente.posizione.x;
         this.dy = fixedPos.y - componente.posizione.y;
@@ -156,24 +164,25 @@ export class ContentComponent implements AfterViewInit {
 
   private removeElement(e: MouseEvent) {
     // Si elimina l'elemento selezionato, se esiste, che è stato disegnato per ultimo
-    const realX = e.clientX - this.rect.left;
-    const realY = e.clientY - this.rect.top;
-    let daCancellare = this.elementoSelezionato(this.componenti, realX, realY);
-    if (daCancellare !== -1) {
-      this.componenti.splice(daCancellare, 1);
+    const canvasPos = this.getCanvasPos(e.clientX, e.clientY);
+    let daCancellare = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y);
+    if (daCancellare !== null) {
+      daCancellare.disconnectAll();
+      this.componenti.splice(this.componenti.indexOf(daCancellare), 1);
     } else {
-      daCancellare = this.elementoSelezionato(this.wires, realX, realY);
-      if (daCancellare !== -1) {
-        this.wires.splice(daCancellare, 1);
+      daCancellare = this.elementoSelezionato(this.wires, canvasPos.x, canvasPos.y);
+      if (daCancellare !== null) {
+        daCancellare.disconnectAll();
+        this.wires.splice(this.wires.indexOf(daCancellare), 1);
       }
     }
   }
 
-  private elementoSelezionato(elementi: any, realX: number, realY: number) {
-    let daCancellare = -1;
+  private elementoSelezionato(elementi: Array<Componente | Wire>, canvasX: number, canvasY: number) {
+    let daCancellare = null;
     elementi.forEach(elemento => {
-      if (elemento.collide(realX, realY)) {
-        daCancellare = elementi.indexOf(elemento);
+      if (elemento.collide(canvasX, canvasY)) {
+        daCancellare = elemento;
       }
     });
     return daCancellare;
@@ -203,11 +212,11 @@ export class ContentComponent implements AfterViewInit {
     this.context.strokeStyle = Wire.colore;
     this.context.beginPath();
 
-    for (let i = 0.5; i < Globals.height; i += Globals.spazio_linee) {
+    for (let i = 0.5; i < Globals.height; i += Globals.scaling) {
       this.context.moveTo(0, i);
       this.context.lineTo(Globals.width, i);
     }
-    for (let i = 0.5; i < Globals.width; i += Globals.spazio_linee) {
+    for (let i = 0.5; i < Globals.width; i += Globals.scaling) {
       this.context.moveTo(i, 0);
       this.context.lineTo(i, Globals.height);
     }
@@ -229,22 +238,12 @@ export class ContentComponent implements AfterViewInit {
     });
   }
 
+  private getCanvasPos(x: number, y: number) {
+    return { x: (x - this.rect.left) / Globals.scaling, y: (y - this.rect.top) / Globals.scaling };
+  }
   private getFixedPos(x: number, y: number) {
-    // Posizioni relative al canvas
-    const realX = x - this.rect.left;
-    const realY = y - this.rect.top;
-
-    // Spazio in mezzo alle linee
-    const distGridX = realX % Globals.spazio_linee;
-    const distGridY = realY % Globals.spazio_linee;
-    let fixedPos: position;
-
-    // Posizione arrotondata alla linee più vicine
-    fixedPos = {
-      x: realX - distGridX + (distGridX > Globals.spazio_linee / 2 ? Globals.spazio_linee : 0),
-      y: realY - distGridY + (distGridY > Globals.spazio_linee / 2 ? Globals.spazio_linee : 0)
-    };
-    return fixedPos;
+    let canvasPos = this.getCanvasPos(x, y);
+    return { x: Math.round(canvasPos.x), y: Math.round(canvasPos.y) };
   }
 
   private calcola_spostamento() {
@@ -268,11 +267,10 @@ export class ContentComponent implements AfterViewInit {
       this.stato = 2;
       // bisogna rimuovere la class "checked" dal mat-button-group 
       this.selezionato = new Componente(4, '/assets/' + componente + '.svg', { x: 0, y: 0 });
-      /*input.forEach((input) => {
-        c.addInput(input[0], input[1]);
-      });*/
+      this.selezionato.addInput(0, 1);
+      this.selezionato.addInput(0, 3);
       // In questo modo il cursore del mouse si trova al centro del componente
-      const temp = this.getFixedPos(this.rect.left + this.selezionato.width / 2, this.rect.top + this.selezionato.height / 2);
+      const temp = this.getFixedPos(this.rect.left + this.selezionato.getWidth() / 2, this.rect.top + this.selezionato.getHeight() / 2);
       this.dx = temp.x;
       this.dy = temp.y;
     }
