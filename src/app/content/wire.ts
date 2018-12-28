@@ -1,15 +1,15 @@
 import { Pin } from './pin';
-import { position } from '../globals';
+import { position, Globals } from '../globals';
 
 export class Wire {
     public sorgente: Pin;
     public destinazione: Pin;
-    public static spessore = 2.5;
+    public static spessore = 0.125;
     public static colore = '#000000';
     public spostamento_orizzontale: boolean;
 
 
-    constructor(sorgente: position, destinazione: position , spostamento_orizzontale: boolean) {
+    constructor(sorgente: position, destinazione: position, spostamento_orizzontale: boolean) {
         this.sorgente = new Pin(sorgente);
         this.destinazione = new Pin(destinazione);
         this.spostamento_orizzontale = spostamento_orizzontale;
@@ -37,27 +37,26 @@ export class Wire {
         // Inizia un nuovo percorso
         context.beginPath();
 
-        context.lineWidth = Wire.spessore;
+        context.lineWidth = Wire.spessore * Globals.scaling;
         context.strokeStyle = Wire.colore;
         // Si inizia a disegnare dalle coordinate di sorgente...
-        context.moveTo(this.sorgente.posizione.x, this.sorgente.posizione.y);
+        context.moveTo(this.sorgente.posizione.x * Globals.scaling, this.sorgente.posizione.y * Globals.scaling);
         // ... fino alle coordinate della x di destinazione (linea orizzontale)
 
         // Se lo spostamento tende verso destra, allora si disegna prima una linea orizzontale
         if (this.spostamento_orizzontale) {
-            context.lineTo(this.destinazione.posizione.x, this.sorgente.posizione.y);
+            context.lineTo(this.destinazione.posizione.x * Globals.scaling, this.sorgente.posizione.y * Globals.scaling);
         } else {
-            context.lineTo(this.sorgente.posizione.x, this.destinazione.posizione.y);
+            context.lineTo(this.sorgente.posizione.x * Globals.scaling, this.destinazione.posizione.y * Globals.scaling);
         }
 
-        context.lineTo(this.destinazione.posizione.x, this.destinazione.posizione.y);
+        context.lineTo(this.destinazione.posizione.x * Globals.scaling, this.destinazione.posizione.y * Globals.scaling);
         // Dopo si disegna effettivamente
         context.stroke();
 
         // Si disegnano i due quadrati alle estremità del percorso
-        context.beginPath();
+
         this.sorgente.draw(context);
         this.destinazione.draw(context);
-        context.stroke();
     }
 }

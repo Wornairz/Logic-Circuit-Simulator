@@ -1,38 +1,52 @@
 import { Globals, position } from '../globals';
 
 export class Pin {
-
+    public next: Array<Pin>;
     public posizione: position;
-    public static size: number = Globals.spazio_linee / 4;
-    public static colore: string = '#0066ffa0';
-    public static spessore: number = 3;
+    public relativePosition: position = null;
+    public parentPosition: position = null;
+    public colore: string = '#0066ffa0';
+    public static size: number = 0.4;
+    public static spessore: number = 0.1;
 
-    constructor(posizione) {
-        this.posizione = posizione;
+    constructor(posizione: position, parentPosition?: position) {
+        if (parentPosition != null) { //Colpa di typescript che non ha l'overloading
+            this.relativePosition = posizione;
+            this.parentPosition = parentPosition;
+            this.updatePosition();
+        }
+        else this.posizione = posizione;
     }
 
-
-    public draw(context: CanvasRenderingContext2D) {
-        context.strokeStyle = Pin.colore;
-        context.fillStyle = Pin.colore;
-        context.lineWidth = Pin.spessore;
-        context.rect(this.posizione.x - Pin.size / 2, this.posizione.y - Pin.size / 2, Pin.size, Pin.size);
-        context.fill();
-    }
-
-    public drawInComponent(context: CanvasRenderingContext2D, parentPosition: position) {
-        const absolutePosition = this.absolutePosition(parentPosition);
-        context.strokeStyle = Pin.colore;
-        context.fillStyle = Pin.colore;
-        context.lineWidth = Pin.spessore;
-        context.rect(absolutePosition.x - Pin.size / 2, absolutePosition.y - Pin.size / 2, Pin.size, Pin.size);
-        context.fill();
-    }
-
-    public absolutePosition(parentPosition: position) {
-        return {
-            x: parentPosition.x + this.posizione.x * Globals.spazio_linee,
-            y: parentPosition.y + this.posizione.y * Globals.spazio_linee
+    public updatePosition() {
+        this.posizione = {
+            x: this.parentPosition.x + this.relativePosition.x,
+            y: this.parentPosition.y + this.relativePosition.y
         };
     }
+
+    public connect(){
+        this.colore = "#24e5c1e0";
+    }
+
+    public isConnected(){
+        return (this.colore === "#24e5c1e0");
+    }
+    public isConnectedTo(punto: Pin) {
+        return (this.posizione.x === punto.posizione.x && this.posizione.y === punto.posizione.y);
+    }
+
+    public draw(context: CanvasRenderingContext2D) {
+        context.beginPath();
+        context.strokeStyle = this.colore;
+        context.lineWidth = Pin.spessore;
+        context.fillStyle = this.colore;
+        context.rect((this.posizione.x - Pin.size / 2) * Globals.scaling, (this.posizione.y - Pin.size / 2) * Globals.scaling, Pin.size * Globals.scaling, Pin.size * Globals.scaling);
+        context.fill();
+    }
+
+
+
 }
+
+
