@@ -48,6 +48,9 @@
         <mat-button-toggle value="2" (click)="ContentComponent.changeMode(2)">
           <img src="/assets/move.svg">
         </mat-button-toggle>
+        <mat-button-toggle value="2" (click)="ContentComponent.changeMode(3); ContentComponent.evaluateCircuit()">
+          <img src="/assets/play.svg">
+        </mat-button-toggle>
       </mat-button-toggle-group>
     </mat-toolbar>
     <app-content #ContentComponent></app-content>

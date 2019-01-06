@@ -8,3 +8,8 @@ export class Globals {
     public static scaling: number = 20;//Math.ceil((1520 * 20) / Globals.width);
 }
 export type position = { x: number, y: number };
+export enum color {
+    White = 0,
+    Gray = 1,
+    Black = 2
+}

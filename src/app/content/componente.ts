@@ -1,26 +1,20 @@
 import { Globals, position } from '../globals';
-import { Pin } from './pin';
 
 export class Componente {
     public posizione: position;
     public width: number;
     public height: number;
-    public input: Array<Pin>;
-    public output: Pin;
+    private alive: boolean = true;
     public immagine: HTMLImageElement;
+    public type: string;
 
-    constructor(numero_quadrati: number, percorso: string, posizione: position) {
+    constructor(numero_quadrati: number, type: string, posizione: position) {
         this.immagine = new Image();
-        this.immagine.src = percorso;
+        this.immagine.src = '/assets/' + type + '.svg';
         this.height = numero_quadrati;
         this.width = this.normalizzaLarghezza();
-        this.input = Array();
         this.posizione = posizione;
-        this.output = new Pin({ x: this.width, y: this.height / 2 }, this.posizione);
-    }
-    public addInput(relativeX: number, relativeY: number) {
-        let temp = new Pin({ x: relativeX, y: relativeY }, this.posizione);
-        this.input.push(temp);
+        this.type = type;
     }
 
     private normalizzaLarghezza() {
@@ -46,24 +40,25 @@ export class Componente {
             this.posizione.x = newPos.x;
         if (newPos.y >= 0 && newPos.y + this.height <= Math.round(Globals.height / Globals.scaling))
             this.posizione.y = newPos.y;
+    }
 
-        this.input.forEach((input) => {
-            input.updatePosition();
-        });
-        this.output.updatePosition();
+    public equals(component: Componente) {
+        return (this.posizione.x === component.posizione.x && this.posizione.y === component.posizione.y);
+
     }
 
     public draw(context: CanvasRenderingContext2D) {
         context.beginPath();
         context.drawImage(this.immagine, this.posizione.x * Globals.scaling, this.posizione.y * Globals.scaling, this.width * Globals.scaling, this.height * Globals.scaling);
-
-        // Si scorre l'array degli input, per alcuni componenti possono essercene più di 2/3
-        this.input.forEach((input) => {
-            input.draw(context);
-        });
-
-        this.output.draw(context);
         context.stroke();
+    }
+
+    public kill() {
+        this.alive = false;
+    }
+
+    public isAlive() {
+        return this.alive;
     }
 
 

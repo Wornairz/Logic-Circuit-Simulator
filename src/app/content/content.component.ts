@@ -1,7 +1,7 @@
 import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Componente } from './componente';
 import { Wire } from './wire';
-import { Globals, position } from '../globals';
+import { Globals, position, color } from '../globals';
 import { Pin } from './pin';
 
 
@@ -21,8 +21,10 @@ export class ContentComponent implements AfterViewInit {
   private prevPos: position;
   private context: CanvasRenderingContext2D;
   private componenti: Array<Componente>;
-  private selezionato: any;
+  private current: any;
+  private currentPins: Array<Pin>;
   private wires: Array<Wire>;
+  private collegamenti: Array<Pin>;
   private rect: ClientRect;
   private modalita: number;
   private stato: number;
@@ -42,7 +44,9 @@ export class ContentComponent implements AfterViewInit {
     this.prevPos = this.currentPos = null;
     this.wires = Array();
     this.componenti = Array();
-    this.selezionato = null;
+    this.collegamenti = Array();
+    this.currentPins = Array();
+    this.current = null;
     this.dx = this.dy = 0;
 
 
@@ -52,7 +56,7 @@ export class ContentComponent implements AfterViewInit {
     canvasElement.height = Globals.height;
 
     // Si impostano alcuni parametri della linea
-    this.context.lineWidth = Wire.spessore; // spessore
+    this.context.lineWidth = 0.125; // spessore
     this.context.lineCap = 'round'; // forma agli estremi della linea
 
     // Si disegna la griglia
@@ -70,6 +74,7 @@ export class ContentComponent implements AfterViewInit {
           case 0: this.enableDrawing(e);
             break;
           case 1: this.removeElement(e);
+            this.updatePins();
             this.reDraw();
             break;
           case 2: this.enableMovement(e);
@@ -81,14 +86,15 @@ export class ContentComponent implements AfterViewInit {
       e.preventDefault();
       // 0: disegno_in_corso, 1: spostamento_in_corso, 2: inserimento_in_corso
       switch (this.stato) {
-        case 0: this.gestisciDisegno(e);
+        case 0: this.newWire(e);
+          this.gestisciDisegno(e);
           break;
         case 1: this.spostaElemento(e);
           this.reDraw();
           break;
         case 2: this.spostaElemento(e);
           this.reDraw();
-          this.selezionato.draw(this.context);
+          this.drawNewElement();
       }
     });
 
@@ -96,10 +102,13 @@ export class ContentComponent implements AfterViewInit {
       e.preventDefault();
       if (e.which === 1) {
         if (!(this.prevPos == null || this.currentPos === null || (this.prevPos.x === this.currentPos.x && this.prevPos.y === this.currentPos.y))) {
-          this.wires.push(this.selezionato);
+          this.prova();
+          this.addPins();
+          this.wires.push(this.current);
         }
         else if (this.stato == 2) {
-          this.componenti.push(this.selezionato);
+          this.addPins();
+          this.componenti.push(this.current);
         }
       }
       this.reDraw();
@@ -124,20 +133,22 @@ export class ContentComponent implements AfterViewInit {
 
   private gestisciDisegno(e: MouseEvent) {
     // Si salvano le posizioni relative al canvas nella variabile currentPos
-    this.currentPos = this.getFixedPos(e.clientX, e.clientY);
+    let newPos = this.getFixedPos(e.clientX, e.clientY);
+    this.currentPos.x = newPos.x;
+    this.currentPos.y = newPos.y;
     // Vengono ridisegnati i componenti precedenti
     this.reDraw();
     // Calcola lo spostamento avvenuto
     this.calcola_spostamento();
     // Viene disegnato il nuovo filo
-    this.selezionato.destinazione.posizione = this.currentPos;
-    this.selezionato.draw(this.context);
+    this.drawNewElement();
   }
 
   private reset() {
     // Viene impedita la possibilità di disegnare impostando il valore di disegna a false
     this.stato = -1;
-    this.selezionato = null;
+    this.current = null;
+    this.currentPins = Array();
     this.prevPos = this.currentPos = null;
     this.dx = this.dy = 0;
   }
@@ -156,7 +167,7 @@ export class ContentComponent implements AfterViewInit {
         const fixedPos = this.getFixedPos(e.clientX, e.clientY);
         this.dx = fixedPos.x - componente.posizione.x;
         this.dy = fixedPos.y - componente.posizione.y;
-        this.selezionato = componente;
+        this.current = componente;
         this.stato = 1;
       }
     });
@@ -167,12 +178,12 @@ export class ContentComponent implements AfterViewInit {
     const canvasPos = this.getCanvasPos(e.clientX, e.clientY);
     let daCancellare = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y);
     if (daCancellare !== null) {
-      daCancellare.disconnectAll();
+      daCancellare.kill();
       this.componenti.splice(this.componenti.indexOf(daCancellare), 1);
     } else {
       daCancellare = this.elementoSelezionato(this.wires, canvasPos.x, canvasPos.y);
       if (daCancellare !== null) {
-        daCancellare.disconnectAll();
+        daCancellare.kill();
         this.wires.splice(this.wires.indexOf(daCancellare), 1);
       }
     }
@@ -191,7 +202,37 @@ export class ContentComponent implements AfterViewInit {
   private spostaElemento(e: MouseEvent) {
     const fixedPos = this.getFixedPos(e.clientX, e.clientY);
     const pos = { x: fixedPos.x - this.dx, y: fixedPos.y - this.dy };
-    this.selezionato.updatePosition(pos);
+    this.current.updatePosition(pos);
+  }
+
+  private getCanvasPos(x: number, y: number) {
+    return { x: (x - this.rect.left) / Globals.scaling, y: (y - this.rect.top) / Globals.scaling };
+  }
+  private getFixedPos(x: number, y: number) {
+    let canvasPos = this.getCanvasPos(x, y);
+    return { x: Math.round(canvasPos.x), y: Math.round(canvasPos.y) };
+  }
+
+  private calcola_spostamento() {
+    if (this.dx === 0 && this.dy === 0) {
+      this.dx = Math.abs(this.prevPos.x - this.currentPos.x);
+      this.dy = Math.abs(this.prevPos.y - this.currentPos.y);
+      this.current.spostamento_orizzontale = this.dx > this.dy;
+    }
+  }
+
+  public changeMode(value: number) {
+    // 0: disegno, 1: cancellazione, 2: spostamento
+    this.modalita = value;
+    this.reset();
+  }
+
+  public selectComponent(componente: string, e: MouseEvent) {
+    e.preventDefault();
+    if (e.which === 1) {
+      this.stato = 2;
+      this.newComponent(componente);
+    }
   }
 
   private reDraw() {
@@ -203,13 +244,14 @@ export class ContentComponent implements AfterViewInit {
     this.drawWires();
     // Vengono ridisegnati tutti i componenti
     this.drawComponents();
-
+    // Vengono ridisegnati tutti i collegamenti
+    this.drawPins();
   }
 
   private drawGrid() {
     // Si imposta un tratto più leggero per tracciare la griglia
     this.context.lineWidth = 0.2;
-    this.context.strokeStyle = Wire.colore;
+    this.context.strokeStyle = "#000000";
     this.context.beginPath();
 
     for (let i = 0.5; i < Globals.height; i += Globals.scaling) {
@@ -225,7 +267,7 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private drawComponents() {
-    // Si disegna ogni componente ed anche i rispettivi input ed output graficamente
+    // Si disegna ogni componente
     this.componenti.forEach((componente) => {
       componente.draw(this.context);
     });
@@ -238,42 +280,140 @@ export class ContentComponent implements AfterViewInit {
     });
   }
 
-  private getCanvasPos(x: number, y: number) {
-    return { x: (x - this.rect.left) / Globals.scaling, y: (y - this.rect.top) / Globals.scaling };
-  }
-  private getFixedPos(x: number, y: number) {
-    let canvasPos = this.getCanvasPos(x, y);
-    return { x: Math.round(canvasPos.x), y: Math.round(canvasPos.y) };
+  private drawPins() {
+    // Si disegnano tutti i collegamenti
+    this.collegamenti.forEach((pin) => {
+      pin.draw(this.context);
+    });
   }
 
-  private calcola_spostamento() {
-    if (this.dx === 0 && this.dy === 0) {
-      this.dx = Math.abs(this.prevPos.x - this.currentPos.x);
-      this.dy = Math.abs(this.prevPos.y - this.currentPos.y);
+  public drawNewElement() {
+    // Si disegna il nuovo componente ed i relativi pin
+    this.current.draw(this.context);
+    this.currentPins.forEach((pin) => {
+      pin.draw(this.context);
+    });
+  }
 
-      this.selezionato = new Wire(this.prevPos, this.currentPos, this.dx > this.dy);//
+
+  public addPins() {
+    this.currentPins.forEach((pin) => {
+      this.collegamenti.push(pin);
+    });
+  }
+
+  public updatePins() {
+    for (let i = this.collegamenti.length - 1; i >= 0; i--) {
+      if (!this.collegamenti[i].updateParents())
+        this.collegamenti.splice(i, 1);
+    }
+    for (let i = this.collegamenti.length - 1; i >= 0; i--) {
+      this.collegamenti[i].updateNext();
+    }
+
+  }
+
+  public newComponent(componente: string) {
+    // Si può fare un'opzione per scegliere il numero di input, il componente si adatterà automaticamente
+    let numero_input = 2;
+    if(componente.startsWith("INPUT"))
+      numero_input = 0;
+    this.current = new Componente((Math.floor(numero_input / 2) + 1) * 2, componente, { x: 0, y: 0 });
+    this.addInputs(numero_input);
+    // In questo modo il cursore del mouse si trova al centro del componente
+    const temp = this.getFixedPos(this.rect.left + this.current.getWidth() / 2, this.rect.top + this.current.getHeight() / 2);
+    this.dx = temp.x;
+    this.dy = temp.y;
+
+  }
+
+  public addInputs(numero_input: number) {
+    let output = new Pin({ x: this.current.width, y: this.current.height / 2 }, this.current);
+    for (let i = 1; i <= Math.ceil(numero_input / 2); i++) {
+      let input = new Pin({ x: 0, y: i }, this.current);
+      input.addNext(output);
+      this.currentPins.push(input);
+    }
+
+    for (let i = Math.floor(numero_input / 2) + 2; i < this.current.height; i++) {
+      let input = new Pin({ x: 0, y: i }, this.current);
+      input.addNext(output);
+      this.currentPins.push(input);
+    }
+    this.currentPins.push(output);
+  }
+
+  public newWire(e: MouseEvent) {
+    if (this.currentPos === null) {
+      this.currentPos = this.getFixedPos(e.clientX, e.clientY);
+      this.current = new Wire(this.prevPos, this.currentPos);
+      let a = new Pin(this.current.sorgente, this.current);
+      let b = new Pin(this.current.destinazione, this.current);
+      a.addNext(b); // 1 push
+      b.addNext(a); // 2 push
+      this.currentPins.push(a);
+      this.currentPins.push(b);
     }
   }
 
-  public changeMode(value: number) {
-    // 0: disegno, 1: cancellazione, 2: spostamento
-    this.modalita = value;
-    this.reset();
+
+  public prova() {
+    this.collegamenti.forEach((pin) => {
+      for (let i = this.currentPins.length - 1; i >= 0; i--) {
+        if (this.currentPins[i].equals(pin)) {
+          this.currentPins[i].next.forEach((next) => {
+            pin.addNext(next);
+            next.renewNext(pin);
+          });
+          this.currentPins[i].parent.forEach((parent) => {
+            pin.addParent(parent);
+          });
+          pin.updateColor();
+          this.currentPins.splice(i, 1);
+        }
+      }
+    })
+
   }
 
-  public selectComponent(componente: string, e: MouseEvent) {
-    e.preventDefault();
-    if (e.which === 1) {
-      this.stato = 2;
-      // bisogna rimuovere la class "checked" dal mat-button-group 
-      this.selezionato = new Componente(4, '/assets/' + componente + '.svg', { x: 0, y: 0 });
-      this.selezionato.addInput(0, 1);
-      this.selezionato.addInput(0, 3);
-      // In questo modo il cursore del mouse si trova al centro del componente
-      const temp = this.getFixedPos(this.rect.left + this.selezionato.getWidth() / 2, this.rect.top + this.selezionato.getHeight() / 2);
-      this.dx = temp.x;
-      this.dy = temp.y;
-    }
+  public resetPins() {
+    this.collegamenti.forEach((pin) => {
+      pin.colore_DFS = color.White;
+      pin.resetValue();
+    });
   }
+
+  public evaluateCircuit() {
+    if (this.hasCycle()) {
+      console.log("C'è un ciclo");
+    }
+    else console.log("È possibile valutare il circuito")
+  }
+
+  public hasCycle() {
+    let has_cycle: boolean = false;
+    this.resetPins();
+    this.collegamenti.forEach((pin) => {
+      if (pin.colore_DFS === color.White)
+        has_cycle = this.DFSVisit(pin, pin) || has_cycle;
+    });
+    return has_cycle;
+  }
+
+  public DFSVisit(pin: Pin, prev: Pin) {
+    let has_cycle: boolean = false;
+    pin.colore_DFS = color.Gray;
+    pin.next.forEach((next) => {
+      if (next.colore_DFS === color.White)
+        has_cycle = this.DFSVisit(next, pin) || has_cycle;
+      else if ((!next.equals(prev) || pin.isConnectedTo(prev) == 2) && next.colore_DFS === color.Gray)
+        has_cycle = true;
+
+    });
+    pin.colore_DFS = color.Black;
+    return has_cycle;
+  }
+
+
 
 }
