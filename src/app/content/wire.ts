@@ -1,62 +1,88 @@
-import { Pin } from './pin';
 import { position, Globals } from '../globals';
 
 export class Wire {
-    public sorgente: Pin;
-    public destinazione: Pin;
-    public static spessore = 0.125;
-    public static colore = '#000000';
+    public posizione: position = { x: 0, y: 0 };
+    public sorgente: position;
+    public destinazione: position;
+    public spessore = 0.125;
+    public colore = '#000000';
+    private alive: boolean = true;
     public spostamento_orizzontale: boolean;
 
 
-    constructor(sorgente: position, destinazione: position, spostamento_orizzontale: boolean) {
-        this.sorgente = new Pin(sorgente);
-        this.destinazione = new Pin(destinazione);
-        this.spostamento_orizzontale = spostamento_orizzontale;
+    constructor(sorgente: position, destinazione: position) {
+        this.sorgente = sorgente;
+        this.destinazione = destinazione;
     }
 
+
     public collide(x: number, y: number): boolean {
-        let a = this.sorgente.posizione.x;
-        let b = this.destinazione.posizione.y;
+        let a = this.sorgente.x;
+        let b = this.destinazione.y;
         if (this.spostamento_orizzontale) {
-            a = this.destinazione.posizione.x;
-            b = this.sorgente.posizione.y;
+            a = this.destinazione.x;
+            b = this.sorgente.y;
         }
-        if (x >= a - 2.5 * Wire.spessore && x <= a + 2.5 * Wire.spessore) {
-            if ((y >= this.sorgente.posizione.y && y <= this.destinazione.posizione.y) || (y >= this.destinazione.posizione.y && y <= this.sorgente.posizione.y)) {
+        if (x >= a - 2.5 * this.spessore && x <= a + 2.5 * this.spessore) {
+            if ((y >= this.sorgente.y && y <= this.destinazione.y) || (y >= this.destinazione.y && y <= this.sorgente.y)) {
                 return true;
             }
-        } else if (y >= b - 2.5 * Wire.spessore && y <= b + 2.5 * Wire.spessore) {
-            if ((x >= this.sorgente.posizione.x && x <= this.destinazione.posizione.x) || (x >= this.destinazione.posizione.x && x <= this.sorgente.posizione.x)) {
+        } else if (y >= b - 2.5 * this.spessore && y <= b + 2.5 * this.spessore) {
+            if ((x >= this.sorgente.x && x <= this.destinazione.x) || (x >= this.destinazione.x && x <= this.sorgente.x)) {
                 return true;
             }
         } else { return false; }
     }
 
+    public equals(wire: Wire) {
+        if (wire.spostamento_orizzontale === this.spostamento_orizzontale && wire.sorgente.x === this.sorgente.x && wire.sorgente.y === this.sorgente.y)
+            return (wire.destinazione.x === this.destinazione.x && wire.destinazione.y === this.destinazione.y);
+    }
+
+    public kill() {
+        this.alive = false;
+    }
+
+    public isAlive() {
+        return this.alive;
+    }
+
+    public undefinedState() {
+        this.colore = "#FF0000";
+        this.spessore = 0.125;
+    }
+
+    public falseState() {
+        this.colore = "#000000";
+        this.spessore = 0.125;
+    }
+    public trueState() {
+        this.colore = "#000000";
+        this.spessore = 0.200;
+    }
+
+
     public draw(context: CanvasRenderingContext2D) {
         // Inizia un nuovo percorso
         context.beginPath();
 
-        context.lineWidth = Wire.spessore * Globals.scaling;
-        context.strokeStyle = Wire.colore;
+        context.lineWidth = this.spessore * Globals.scaling;
+        context.strokeStyle = this.colore;
         // Si inizia a disegnare dalle coordinate di sorgente...
-        context.moveTo(this.sorgente.posizione.x * Globals.scaling, this.sorgente.posizione.y * Globals.scaling);
+        context.moveTo(this.sorgente.x * Globals.scaling, this.sorgente.y * Globals.scaling);
         // ... fino alle coordinate della x di destinazione (linea orizzontale)
 
         // Se lo spostamento tende verso destra, allora si disegna prima una linea orizzontale
         if (this.spostamento_orizzontale) {
-            context.lineTo(this.destinazione.posizione.x * Globals.scaling, this.sorgente.posizione.y * Globals.scaling);
+            context.lineTo(this.destinazione.x * Globals.scaling, this.sorgente.y * Globals.scaling);
         } else {
-            context.lineTo(this.sorgente.posizione.x * Globals.scaling, this.destinazione.posizione.y * Globals.scaling);
+            context.lineTo(this.sorgente.x * Globals.scaling, this.destinazione.y * Globals.scaling);
         }
 
-        context.lineTo(this.destinazione.posizione.x * Globals.scaling, this.destinazione.posizione.y * Globals.scaling);
+        context.lineTo(this.destinazione.x * Globals.scaling, this.destinazione.y * Globals.scaling);
         // Dopo si disegna effettivamente
         context.stroke();
-
-        // Si disegnano i due quadrati alle estremità del percorso
-
-        this.sorgente.draw(context);
-        this.destinazione.draw(context);
     }
+
+
 }

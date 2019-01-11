@@ -5,22 +5,23 @@ export class Componente {
     public posizione: position;
     public width: number;
     public height: number;
-    public input: Array<Pin>;
-    public output: Pin;
+    private alive: boolean = true;
     public immagine: HTMLImageElement;
+    public type: string;
+    private numero_input: number;
+    public truth_table: number[][];
+    public inputs: Array<Pin>;
 
-    constructor(numero_quadrati: number, percorso: string, posizione: position) {
+    constructor(numero_input: number, type: string, posizione: position) {
         this.immagine = new Image();
-        this.immagine.src = percorso;
-        this.height = numero_quadrati;
+        this.immagine.src = '/assets/' + type + '.svg';
+        this.numero_input = numero_input;
+        this.height = (Math.floor(numero_input / 2) + 1) * 2;
         this.width = this.normalizzaLarghezza();
-        this.input = Array();
         this.posizione = posizione;
-        this.output = new Pin({ x: this.width, y: this.height / 2 }, this.posizione);
-    }
-    public addInput(relativeX: number, relativeY: number) {
-        let temp = new Pin({ x: relativeX, y: relativeY }, this.posizione);
-        this.input.push(temp);
+        this.type = type;
+        this.inputs = Array();
+        this.truthTable();
     }
 
     private normalizzaLarghezza() {
@@ -46,23 +47,56 @@ export class Componente {
             this.posizione.x = newPos.x;
         if (newPos.y >= 0 && newPos.y + this.height <= Math.round(Globals.height / Globals.scaling))
             this.posizione.y = newPos.y;
+    }
 
-        this.input.forEach((input) => {
-            input.updatePosition();
-        });
-        this.output.updatePosition();
+    public equals(component: Componente) {
+        return (this.posizione.x === component.posizione.x && this.posizione.y === component.posizione.y);
+
+    }
+
+    public truthTable() {
+        switch (this.type) {
+            case "AND": this.truth_table = [[0, 0], [0, 1]];
+                break;
+            case "NAND": this.truth_table = [[1, 1], [1, 0]];
+                break;
+            case "OR": this.truth_table = [[0, 1], [1, 1]];
+                break;
+            case "NOR": this.truth_table = [[1, 0], [0, 0]];
+                break;
+            case "XOR": this.truth_table = [[0, 1], [1, 0]];
+                break;
+            default: this.truthTable = null;
+        }
+    }
+
+    public evaluate() {
+        let output = -1;
+        if (this.isReady()) {
+            console.log(this.type);
+            output = this.truth_table[this.inputs[0].value][this.inputs[1].value];
+            for (let i = 2; i < this.inputs.length; i++) {
+                output = this.truth_table[output][this.inputs[i].value];
+            }
+        }
+        return output;
+    }
+
+    public isReady() {
+        return (this.numero_input === this.inputs.length);
+    }
+
+    public kill() {
+        this.alive = false;
+    }
+
+    public isAlive() {
+        return this.alive;
     }
 
     public draw(context: CanvasRenderingContext2D) {
         context.beginPath();
         context.drawImage(this.immagine, this.posizione.x * Globals.scaling, this.posizione.y * Globals.scaling, this.width * Globals.scaling, this.height * Globals.scaling);
-
-        // Si scorre l'array degli input, per alcuni componenti possono essercene più di 2/3
-        this.input.forEach((input) => {
-            input.draw(context);
-        });
-
-        this.output.draw(context);
         context.stroke();
     }
 
