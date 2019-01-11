@@ -5,7 +5,7 @@ export class Wire {
     public sorgente: position;
     public destinazione: position;
     public spessore = 0.125;
-    public static colore = '#000000';
+    public colore = '#000000';
     private alive: boolean = true;
     public spostamento_orizzontale: boolean;
 
@@ -47,13 +47,27 @@ export class Wire {
         return this.alive;
     }
 
+    public undefinedState() {
+        this.colore = "#FF0000";
+        this.spessore = 0.125;
+    }
+
+    public falseState() {
+        this.colore = "#000000";
+        this.spessore = 0.125;
+    }
+    public trueState() {
+        this.colore = "#000000";
+        this.spessore = 0.200;
+    }
+
 
     public draw(context: CanvasRenderingContext2D) {
         // Inizia un nuovo percorso
         context.beginPath();
 
         context.lineWidth = this.spessore * Globals.scaling;
-        context.strokeStyle = Wire.colore;
+        context.strokeStyle = this.colore;
         // Si inizia a disegnare dalle coordinate di sorgente...
         context.moveTo(this.sorgente.x * Globals.scaling, this.sorgente.y * Globals.scaling);
         // ... fino alle coordinate della x di destinazione (linea orizzontale)

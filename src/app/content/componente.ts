@@ -1,4 +1,5 @@
 import { Globals, position } from '../globals';
+import { Pin } from './pin';
 
 export class Componente {
     public posizione: position;
@@ -7,14 +8,20 @@ export class Componente {
     private alive: boolean = true;
     public immagine: HTMLImageElement;
     public type: string;
+    private numero_input: number;
+    public truth_table: number[][];
+    public inputs: Array<Pin>;
 
-    constructor(numero_quadrati: number, type: string, posizione: position) {
+    constructor(numero_input: number, type: string, posizione: position) {
         this.immagine = new Image();
         this.immagine.src = '/assets/' + type + '.svg';
-        this.height = numero_quadrati;
+        this.numero_input = numero_input;
+        this.height = (Math.floor(numero_input / 2) + 1) * 2;
         this.width = this.normalizzaLarghezza();
         this.posizione = posizione;
         this.type = type;
+        this.inputs = Array();
+        this.truthTable();
     }
 
     private normalizzaLarghezza() {
@@ -47,10 +54,36 @@ export class Componente {
 
     }
 
-    public draw(context: CanvasRenderingContext2D) {
-        context.beginPath();
-        context.drawImage(this.immagine, this.posizione.x * Globals.scaling, this.posizione.y * Globals.scaling, this.width * Globals.scaling, this.height * Globals.scaling);
-        context.stroke();
+    public truthTable() {
+        switch (this.type) {
+            case "AND": this.truth_table = [[0, 0], [0, 1]];
+                break;
+            case "NAND": this.truth_table = [[1, 1], [1, 0]];
+                break;
+            case "OR": this.truth_table = [[0, 1], [1, 1]];
+                break;
+            case "NOR": this.truth_table = [[1, 0], [0, 0]];
+                break;
+            case "XOR": this.truth_table = [[0, 1], [1, 0]];
+                break;
+            default: this.truthTable = null;
+        }
+    }
+
+    public evaluate() {
+        let output = -1;
+        if (this.isReady()) {
+            console.log(this.type);
+            output = this.truth_table[this.inputs[0].value][this.inputs[1].value];
+            for (let i = 2; i < this.inputs.length; i++) {
+                output = this.truth_table[output][this.inputs[i].value];
+            }
+        }
+        return output;
+    }
+
+    public isReady() {
+        return (this.numero_input === this.inputs.length);
     }
 
     public kill() {
@@ -59,6 +92,12 @@ export class Componente {
 
     public isAlive() {
         return this.alive;
+    }
+
+    public draw(context: CanvasRenderingContext2D) {
+        context.beginPath();
+        context.drawImage(this.immagine, this.posizione.x * Globals.scaling, this.posizione.y * Globals.scaling, this.width * Globals.scaling, this.height * Globals.scaling);
+        context.stroke();
     }
 
 

@@ -9,7 +9,7 @@ export class Pin {
     private relativePosition: position = null;
     public parent: Array<any> = null;
     public colore: string = '#0066ffa0';
-    private value: number = -1;
+    private _value: number = -1;
     public colore_DFS: color = color.White;
     public static size: number = 0.4;
     public static spessore: number = 0.1;
@@ -31,12 +31,18 @@ export class Pin {
         this._posizione.y = this.parent[0].posizione.y + this.relativePosition.y;
         return this._posizione;
     }
+    set value(value: number) {
+        this._value = value;
+    }
+    get value(): number {
+        return this._value;
+    }
 
     public equals(punto: Pin) {
         return (this.posizione.x === punto.posizione.x && this.posizione.y === punto.posizione.y);
     }
 
-    public renewNext(pin: Pin) {
+    public changeNext(pin: Pin) {
         for (let i = this.next.length - 1; i >= 0; i--) {
             if (this.next[i].equals(pin)) {
                 this.next.splice(i, 1);
@@ -76,12 +82,12 @@ export class Pin {
     public resetValue() {
         if (this.parent[0] instanceof Componente) {
             if (this.parent[0].type === "INPUT")
-                this.value = 1;
+                this._value = 1;
             else if (this.parent[0].type === "INPUTN")
-                this.value = 0;
-            else this.value = -1;
+                this._value = 0;
+            else this._value = -1;
         }
-        else this.value = -1;
+        else this._value = -1;
     }
 
     public isConnectedTo(pin: Pin) {
@@ -116,6 +122,24 @@ export class Pin {
             elementi.push(last);
     }
 
+    public updateParentProperties() {
+        this.parent.forEach((parent) => {
+            if (parent instanceof Wire) {
+                switch (this.value) {
+                    case -1: parent.undefinedState();
+                        break;
+                    case 0: parent.falseState();
+                        break;
+                    case 1: parent.trueState();
+                        break;
+                    default: break;
+                }
+            }
+
+        });
+
+    }
+
     public draw(context: CanvasRenderingContext2D) {
         context.beginPath();
         context.strokeStyle = this.colore;
@@ -125,9 +149,13 @@ export class Pin {
         context.fill();
     }
 
+    public getComponent() {
+        return this.parent[0];
+    }
 
 
-    /*public print() {
+
+    public printTemp() {
         console.log("I'm at: ");
         console.log(this.posizione);
         console.log("My next are: ");
@@ -139,7 +167,7 @@ export class Pin {
             console.log(this.parent[i]);
         }
 
-    }*/
+    }
 
 
 

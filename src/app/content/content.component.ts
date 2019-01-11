@@ -316,9 +316,9 @@ export class ContentComponent implements AfterViewInit {
   public newComponent(componente: string) {
     // Si può fare un'opzione per scegliere il numero di input, il componente si adatterà automaticamente
     let numero_input = 2;
-    if(componente.startsWith("INPUT"))
+    if (componente.startsWith("INPUT"))
       numero_input = 0;
-    this.current = new Componente((Math.floor(numero_input / 2) + 1) * 2, componente, { x: 0, y: 0 });
+    this.current = new Componente(numero_input, componente, { x: 0, y: 0 });
     this.addInputs(numero_input);
     // In questo modo il cursore del mouse si trova al centro del componente
     const temp = this.getFixedPos(this.rect.left + this.current.getWidth() / 2, this.rect.top + this.current.getHeight() / 2);
@@ -363,7 +363,7 @@ export class ContentComponent implements AfterViewInit {
         if (this.currentPins[i].equals(pin)) {
           this.currentPins[i].next.forEach((next) => {
             pin.addNext(next);
-            next.renewNext(pin);
+            next.changeNext(pin);
           });
           this.currentPins[i].parent.forEach((parent) => {
             pin.addParent(parent);
@@ -382,12 +382,62 @@ export class ContentComponent implements AfterViewInit {
       pin.resetValue();
     });
   }
+  public resetComponents() {
+    this.componenti.forEach((componente) => {
+      componente.inputs = Array();
+    });
+
+  }
+
+  public getInputs() {
+    let inputs = Array<Pin>();
+    this.collegamenti.forEach((pin) => {
+      if (pin.value != -1) {
+        inputs.push(pin);
+      }
+    });
+    return inputs;
+
+  }
+
+  public BFSVisit() {
+    this.resetPins();
+    this.resetComponents();
+    let inputs = this.getInputs();
+    while (inputs.length != 0) {
+      let input = inputs.pop();
+      input.next.forEach((next) => {
+        if (next.value === -1) {
+          let componente = next.getComponent();
+          if (componente instanceof Componente) {
+
+            // Non è un output
+            if (next.posizione.x != componente.posizione.x + componente.width) {
+              componente.inputs.push(next);
+              next.value = input.value;
+            }
+            else next.value = componente.evaluate();
+          }
+          else next.value = input.value;
+          if (next.value != -1) inputs.push(next);
+        }
+      });
+    }
+  }
 
   public evaluateCircuit() {
-    if (this.hasCycle()) {
-      console.log("C'è un ciclo");
+    if (!this.hasCycle()) {
+      this.BFSVisit();
+      this.collegamenti.forEach((pin) => {
+        pin.updateParentProperties();
+      })
     }
-    else console.log("È possibile valutare il circuito")
+    else {
+      this.wires.forEach((wire) => {
+        wire.undefinedState();
+      })
+    }
+    this.reDraw();
   }
 
   public hasCycle() {
