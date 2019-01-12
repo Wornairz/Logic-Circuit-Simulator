@@ -4,12 +4,12 @@ import { Componente } from './componente';
 
 
 export class Pin {
-    private _posizione: position;
-    public next: Array<Pin>;
-    private relativePosition: position = null;
-    public parent: Array<any> = null;
-    public colore: string = '#0066ffa0';
-    private _value: number = -1;
+    private _posizione: position; // posizione del pin
+    public next: Array<Pin>; // array dei Pin collegati
+    private relativePosition: position = null; // posizione rispetto al componente
+    public parent: Array<any> = null; // array dei parent
+    public colore: string = '#0066ffa0'; // colore dei Pin (sicuro per il web)
+    private _value: number = -1 // valore logico -> -1: non definito, 0 false, 1 true
     public colore_DFS: color = color.White;
     public static size: number = 0.4;
     public static spessore: number = 0.1;
@@ -20,7 +20,7 @@ export class Pin {
         this.parent = new Array();
         this.parent.push(parent);
         this.next = new Array();
-        this._posizione = {
+        this._posizione = { // la posizione del Pin è ottenuta dalla posizione del suo primo parent cioè il componente
             x: this.parent[0].posizione.x + this.relativePosition.x,
             y: this.parent[0].posizione.y + this.relativePosition.y
         };
@@ -38,7 +38,7 @@ export class Pin {
         return this._value;
     }
 
-    public equals(punto: Pin) {
+    public equals(punto: Pin) { // controllare se due Pin sono nella stessa posizione
         return (this.posizione.x === punto.posizione.x && this.posizione.y === punto.posizione.y);
     }
 

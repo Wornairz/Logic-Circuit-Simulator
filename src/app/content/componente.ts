@@ -79,6 +79,7 @@ export class Componente {
                 output = this.truth_table[output][this.inputs[i].value];
             }
         }
+        alert(output);
         return output;
     }
 

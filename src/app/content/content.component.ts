@@ -14,22 +14,23 @@ import { Pin } from './pin';
 
 
 export class ContentComponent implements AfterViewInit {
-  // Riferimento al canvas
-  @ViewChild('foglio') foglio: ElementRef;
 
-  private currentPos: position;
-  private prevPos: position;
-  private context: CanvasRenderingContext2D;
-  private componenti: Array<Componente>;
-  private current: any;
-  private currentPins: Array<Pin>;
-  private wires: Array<Wire>;
-  private collegamenti: Array<Pin>;
-  private rect: ClientRect;
-  private modalita: number;
-  private stato: number;
-  private dx: number;
-  private dy: number;
+  @ViewChild('foglio') foglio: ElementRef; // Riferimento al canvas
+
+  private currentPos: position; // ultima posizione del cursore del mouse
+  private prevPos: position; // posizione precedente del cursore del mouse
+  private context: CanvasRenderingContext2D; // oggetto per usare i metodi grafici (draw, drawImage, stroke, fill, etc)
+  private componenti: Array<Componente>; // array dei componenti logici (AND, OR, etc) attualmente presenti nel canvas
+  private wires: Array<Wire>; // come sopra ma per i wires
+  private collegamenti: Array<Pin>; // come sopra ma per i pins
+  private current: any; // oggetto temporaneo usato prima di rendere effettivo l'inserimento di un elemento (componente o filo)
+  private currentPins: Array<Pin>; // come sopra ma dei pins
+  
+  private rect: ClientRect; // oggetto che contiene informazioni del canvas (es. posizione) in modo che le posizioni degli elementi abbiano come riferimento il canvas
+  private modalita: number; // modalità selezionata dalla toolbar (wire, delwire, movewire, play)
+  private stato: number; // stato della modalità (es. se dopo aver cliccato wire si sta disegnando o meno)
+  private dx: number; // variabile utilizzata per esprimere la differenza tra la x della posizione precedente e quella successiva
+  private dy: number; // variabile utilizzata per esprimere la differenza tra la y della posizione precedente e quella successiva
 
 
 
@@ -51,7 +52,6 @@ export class ContentComponent implements AfterViewInit {
 
 
     // Si imposta la larghezza e l'altezza del canvas
-    console.log(window.outerWidth);
     canvasElement.width = Globals.width;
     canvasElement.height = Globals.height;
 
@@ -67,32 +67,32 @@ export class ContentComponent implements AfterViewInit {
 
   private gestisciEventi(canvasElement: HTMLCanvasElement) {
     canvasElement.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      // 0: abilitazione_disegno, 1: cancellazione, 2: abilitazione_movimento
-      if (e.which === 1)
-        switch (this.modalita) {
-          case 0: this.enableDrawing(e);
+      e.preventDefault(); // Inibisce il comportamento di default
+      if (e.which === 1) // Controlla se effettivamente è stato premuto il tasto sinistro del mouse
+        switch (this.modalita) { 
+          // 0: abilitazione_disegno_wire , 1: cancellazione_elemento, 2: abilitazione_movimento
+          case 0: this.enableDrawing(e.clientX, e.clientY);
             break;
-          case 1: this.removeElement(e);
-            this.updatePins();
-            this.reDraw();
+          case 1: this.removeElement(e.clientX, e.clientY);
+            this.updatePins(); // dopo aver rimosso un elemento dobbiamo ri-controllare i pins
+            this.reDraw(); // si ridisegna il tutto
             break;
-          case 2: this.enableMovement(e);
+          case 2: this.enableMovement(e.clientX, e.clientY); // abilita lo spostamento e prepara le variabili
             break;
         }
     });
 
     canvasElement.addEventListener('mousemove', (e) => {
-      e.preventDefault();
-      // 0: disegno_in_corso, 1: spostamento_in_corso, 2: inserimento_in_corso
-      switch (this.stato) {
-        case 0: this.newWire(e);
-          this.gestisciDisegno(e);
+      e.preventDefault(); // Inibisce il comportamento di default
+      switch (this.stato) { 
+        // 0: disegno_wire_in_corso, 1: spostamento_elemento_in_corso, 2: inserimento_componente_in_corso
+        case 0: this.newWire(e.clientX, e.clientY);
+          this.gestisciDisegno(e.clientX, e.clientY);
           break;
-        case 1: this.spostaElemento(e);
+        case 1: this.spostaElemento(e.clientX, e.clientY);
           this.reDraw();
           break;
-        case 2: this.spostaElemento(e);
+        case 2: this.spostaElemento(e.clientX, e.clientY);
           this.reDraw();
           this.drawNewElement();
       }
@@ -131,17 +131,13 @@ export class ContentComponent implements AfterViewInit {
 
   }
 
-  private gestisciDisegno(e: MouseEvent) {
-    // Si salvano le posizioni relative al canvas nella variabile currentPos
-    let newPos = this.getFixedPos(e.clientX, e.clientY);
-    this.currentPos.x = newPos.x;
-    this.currentPos.y = newPos.y;
-    // Vengono ridisegnati i componenti precedenti
-    this.reDraw();
-    // Calcola lo spostamento avvenuto
-    this.calcola_spostamento();
-    // Viene disegnato il nuovo filo
-    this.drawNewElement();
+  private gestisciDisegno(clientX, clientY) { //metodo che aggiorna continuamente la posizione del Wire temporaneo
+    let newPos = this.getFixedPos(clientX, clientY); // si prende la nuova posizione "normalizzata"
+    this.currentPos.x = newPos.x; // si aggiorna la x 
+    this.currentPos.y = newPos.y; // e la y 
+    this.reDraw(); // Vengono ridisegnati i componenti precedenti
+    this.calcola_spostamento(); // Calcola lo spostamento avvenuto
+    this.drawNewElement(); // Viene disegnato il nuovo filo
   }
 
   private reset() {
@@ -153,34 +149,33 @@ export class ContentComponent implements AfterViewInit {
     this.dx = this.dy = 0;
   }
 
-  private enableDrawing(e: MouseEvent) {
+  private enableDrawing(clientX, clientY) {
     // Vengono salvate le coordinate del mouse al momento della pressione del tasto
-    this.prevPos = this.getFixedPos(e.clientX, e.clientY);
-    // Si permette il disegno impostando il valore di disegna a true
+    this.prevPos = this.getFixedPos(clientX, clientY);
+    // Si permette il disegno impostando il valore di stato a 0
     this.stato = 0;
   }
 
-  private enableMovement(e: MouseEvent) {
-    const canvasPos = this.getCanvasPos(e.clientX, e.clientY);
+  private enableMovement(clientX, clientY) {
+    const canvasPos = this.getCanvasPos(clientX, clientY); //posizione NON "normalizzata" relativa al canvas
     this.componenti.forEach((componente) => {
-      if (componente.collide(canvasPos.x, canvasPos.y)) {
-        const fixedPos = this.getFixedPos(e.clientX, e.clientY);
-        this.dx = fixedPos.x - componente.posizione.x;
-        this.dy = fixedPos.y - componente.posizione.y;
-        this.current = componente;
-        this.stato = 1;
+      if (componente.collide(canvasPos.x, canvasPos.y)) { // si controlla se in quella posizione c'è un componente
+        const fixedPos = this.getFixedPos(clientX, clientY); // posizione "normalizzata"
+        this.dx = fixedPos.x - componente.posizione.x; // la differenza viene usata per mantenere la distanza tra il vertice in alto a sx del componente e il cursore
+        this.dy = fixedPos.y - componente.posizione.y; // in modo da rendere lo spostamento graficamente più godibile (altrimenti il cursore sarebbe sempre in alto a sx del componente)
+        this.current = componente; // si setta current al componente selezionato
+        this.stato = 1; // infine si abilita effettivamente il movimento
       }
     });
   }
 
-  private removeElement(e: MouseEvent) {
-    // Si elimina l'elemento selezionato, se esiste, che è stato disegnato per ultimo
-    const canvasPos = this.getCanvasPos(e.clientX, e.clientY);
-    let daCancellare = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y);
+  private removeElement(clientX, clientY) { // metodo che elimina l'elemento selezionato, se esiste, che è stato disegnato per ultimo
+    const canvasPos = this.getCanvasPos(clientX, clientY); // posizione NON "normalizzata" (riferita relativamente al canvas)
+    let daCancellare = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y); // ricerca, nell'array dei componenti, il componente che ha al suo interno la posizione del mouse
     if (daCancellare !== null) {
-      daCancellare.kill();
-      this.componenti.splice(this.componenti.indexOf(daCancellare), 1);
-    } else {
+      daCancellare.kill(); // settando a false l'attributo alive, la successiva chiamata ad updatePins provvederà a rimuovere l'elemento dai Pin
+      this.componenti.splice(this.componenti.indexOf(daCancellare), 1); // toglie l'elemento dall'array (1 è il numero di occorrenze da eliminare)
+    } else {  // lo stesso viene fatto per i wires che però hanno meno priorità
       daCancellare = this.elementoSelezionato(this.wires, canvasPos.x, canvasPos.y);
       if (daCancellare !== null) {
         daCancellare.kill();
@@ -189,7 +184,7 @@ export class ContentComponent implements AfterViewInit {
     }
   }
 
-  private elementoSelezionato(elementi: Array<Componente | Wire>, canvasX: number, canvasY: number) {
+  private elementoSelezionato(elementi: Array<Componente | Wire>, canvasX: number, canvasY: number) { //si ricerca un elemento e si restituisce
     let daCancellare = null;
     elementi.forEach(elemento => {
       if (elemento.collide(canvasX, canvasY)) {
@@ -199,8 +194,8 @@ export class ContentComponent implements AfterViewInit {
     return daCancellare;
   }
 
-  private spostaElemento(e: MouseEvent) {
-    const fixedPos = this.getFixedPos(e.clientX, e.clientY);
+  private spostaElemento(clientX, clientY) {
+    const fixedPos = this.getFixedPos(clientX, clientY); //si prende la posizione "normalizzata"
     const pos = { x: fixedPos.x - this.dx, y: fixedPos.y - this.dy };
     this.current.updatePosition(pos);
   }
@@ -213,11 +208,11 @@ export class ContentComponent implements AfterViewInit {
     return { x: Math.round(canvasPos.x), y: Math.round(canvasPos.y) };
   }
 
-  private calcola_spostamento() {
-    if (this.dx === 0 && this.dy === 0) {
-      this.dx = Math.abs(this.prevPos.x - this.currentPos.x);
-      this.dy = Math.abs(this.prevPos.y - this.currentPos.y);
-      this.current.spostamento_orizzontale = this.dx > this.dy;
+  private calcola_spostamento() { // si controlla la differenza tra la posizione precente e quella attuale per disegnare i Wire in modo più intuitivo
+    if (this.dx === 0 && this.dy === 0) { // se non si è fatto un primo spostamento
+      this.dx = Math.abs(this.prevPos.x - this.currentPos.x); //differenza delle x
+      this.dy = Math.abs(this.prevPos.y - this.currentPos.y); //differenza delle y
+      this.current.spostamento_orizzontale = this.dx > this.dy; // prevalenza dello spostamento orizzontale
     }
   }
 
@@ -236,34 +231,28 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private reDraw() {
-    // Si pulisce il canvas
-    this.context.clearRect(0, 0, Globals.width, Globals.height);
-    // Viene ridisegnata la griglia
-    this.drawGrid();
-    // Vengono ridisegnati tutti i fili
-    this.drawWires();
-    // Vengono ridisegnati tutti i componenti
-    this.drawComponents();
-    // Vengono ridisegnati tutti i collegamenti
-    this.drawPins();
+    
+    this.context.clearRect(0, 0, Globals.width, Globals.height); // Si pulisce il canvas (si rimuove TUTTO)
+    this.drawGrid(); // Viene ridisegnata la griglia
+    this.drawWires(); // Vengono ridisegnati tutti i fili
+    this.drawComponents(); // Vengono ridisegnati tutti i componenti
+    this.drawPins(); // Vengono ridisegnati tutti i collegamenti
   }
 
   private drawGrid() {
-    // Si imposta un tratto più leggero per tracciare la griglia
-    this.context.lineWidth = 0.2;
-    this.context.strokeStyle = "#000000";
-    this.context.beginPath();
+    this.context.lineWidth = 0.2; // Si imposta un tratto più leggero per tracciare la griglia
+    this.context.strokeStyle = "#000000"; // Si reimposta il colore a nero
+    this.context.beginPath(); // inizia un nuovo percorso in modo che vengano scartate le modifiche del percorso precedente
 
-    for (let i = 0.5; i < Globals.height; i += Globals.scaling) {
-      this.context.moveTo(0, i);
-      this.context.lineTo(Globals.width, i);
+    for (let i = 0.5; i < Globals.height; i += Globals.scaling) { //disegna le linee orizzantali
+      this.context.moveTo(0, i); // sposta il punto di riferimento nelle coordinate indicate dai parametri
+      this.context.lineTo(Globals.width, i); // disegna dal punto di riferimento (linea sopra) fino alle coordinate indicate nei parametri
     }
-    for (let i = 0.5; i < Globals.width; i += Globals.scaling) {
+    for (let i = 0.5; i < Globals.width; i += Globals.scaling) { //disegna le linee verticali
       this.context.moveTo(i, 0);
       this.context.lineTo(i, Globals.height);
     }
-    // Si disegna effettivamente
-    this.context.stroke();
+    this.context.stroke(); // si confermano i tracciati indicati da dopo il beginPath e si conclude il percorso
   }
 
   private drawComponents() {
@@ -288,7 +277,7 @@ export class ContentComponent implements AfterViewInit {
   }
 
   public drawNewElement() {
-    // Si disegna il nuovo componente ed i relativi pin
+    // Si disegna il nuovo elemento (componente o Wire) ed i relativi pin
     this.current.draw(this.context);
     this.currentPins.forEach((pin) => {
       pin.draw(this.context);
@@ -343,16 +332,16 @@ export class ContentComponent implements AfterViewInit {
     this.currentPins.push(output);
   }
 
-  public newWire(e: MouseEvent) {
-    if (this.currentPos === null) {
-      this.currentPos = this.getFixedPos(e.clientX, e.clientY);
-      this.current = new Wire(this.prevPos, this.currentPos);
-      let a = new Pin(this.current.sorgente, this.current);
-      let b = new Pin(this.current.destinazione, this.current);
-      a.addNext(b); // 1 push
-      b.addNext(a); // 2 push
-      this.currentPins.push(a);
-      this.currentPins.push(b);
+  public newWire(clientX, clientY) { // metodo per aggiungere un nuovo wire
+    if (this.currentPos === null) { // controllo per evitare di creare più di una volta il Wire
+      this.currentPos = this.getFixedPos(clientX, clientY); // ottiene la posizione corretta per stare nella griglia
+      this.current = new Wire(this.prevPos, this.currentPos); // si crea l'oggetto Wire con i due PUNTATORI prevPos e currentPos quindi una eventuale modifica aggiornerebbe il valore in Wire
+      let a = new Pin(this.current.sorgente, this.current); // viene creato un Pin in prevPos che fa riferimento al Wire current (anche qua usiamo i puntatori per eventualmente aggiornare il valore)
+      let b = new Pin(this.current.destinazione, this.current); // viene creato un Pin in currentPos che fa riferimento al Wire current (anche qua usiamo i puntatori per eventualmente aggiornare il valore)
+      a.addNext(b); // nel grafo dei percorsi viene creato un collegamento tra i due pin 
+      b.addNext(a); // in ambo i sensi
+      this.currentPins.push(a); // si aggiunge il Pin a nell'array dei Pins temporanei
+      this.currentPins.push(b); // idem per b
     }
   }
 
@@ -423,6 +412,7 @@ export class ContentComponent implements AfterViewInit {
         }
       });
     }
+
   }
 
   public evaluateCircuit() {
