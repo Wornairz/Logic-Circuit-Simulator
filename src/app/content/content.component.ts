@@ -129,6 +129,22 @@ export class ContentComponent implements AfterViewInit {
       this.reset();// ?
     });
 
+    canvasElement.addEventListener('dblclick', (e) => {
+      e.preventDefault(); // Inibisce il comportamento di default
+      const canvasPos = this.getCanvasPos(e.clientX, e.clientY); // posizione NON "normalizzata" (riferita relativamente al canvas)
+      let componenteSelezionato = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y); // ricerca, nell'array dei componenti, il componente che ha al suo interno la posizione del mouse
+      if (componenteSelezionato !== null) {
+        if(componenteSelezionato.type == "INPUT"){
+          componenteSelezionato.changeState(false);
+        }
+        else if(componenteSelezionato.type == "INPUTN"){
+          componenteSelezionato.changeState(true);
+        }
+        componenteSelezionato.immagine.onload = (event)=>{this.reDraw()};
+
+      }      
+    });
+
   }
 
   private gestisciDisegno(clientX, clientY) { //metodo che aggiorna continuamente la posizione del Wire temporaneo
@@ -307,6 +323,8 @@ export class ContentComponent implements AfterViewInit {
     let numero_input = 2;
     if (componente.startsWith("INPUT"))
       numero_input = 0;
+    else if(componente.search("LED") != -1 || componente == "NOT")
+      numero_input = 1;
     this.current = new Componente(numero_input, componente, { x: 0, y: 0 });
     this.addInputs(numero_input);
     // In questo modo il cursore del mouse si trova al centro del componente
@@ -399,13 +417,16 @@ export class ContentComponent implements AfterViewInit {
         if (next.value === -1) {
           let componente = next.getComponent();
           if (componente instanceof Componente) {
-
-            // Non è un output
+            // Non è un Pin di output
             if (next.posizione.x != componente.posizione.x + componente.width) {
               componente.inputs.push(next);
               next.value = input.value;
             }
             else next.value = componente.evaluate();
+            if(componente.type == "WLED" || componente.type == "RLED" || componente.type == "GLED"){
+              componente.changeState(next.value);
+              componente.immagine.onload = (event)=>{componente.draw(this.context);};
+            }
           }
           else next.value = input.value;
           if (next.value != -1) inputs.push(next);
@@ -415,7 +436,7 @@ export class ContentComponent implements AfterViewInit {
 
   }
 
-  public evaluateCircuit() {
+  public evaluateCircuit() { //richiamato alla pressione del tasto play nella toolbar
     if (!this.hasCycle()) {
       this.BFSVisit();
       this.collegamenti.forEach((pin) => {

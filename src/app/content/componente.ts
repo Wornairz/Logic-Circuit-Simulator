@@ -54,6 +54,17 @@ export class Componente {
 
     }
 
+    public changeState(stato: number) {
+        if (this.type == "INPUT" || this.type == "INPUTN") {
+            this.type = "INPUT" + (stato == 1 ? "" : "N");
+            this.immagine.src = '/assets/' + this.type + '.svg';
+        }
+        else if (this.type == "WLED" || this.type == "RLED" || this.type == "GLED") {
+            this.type = (stato == 1 ? "G" : "R") + "LED";
+            this.immagine.src = '/assets/' + this.type + '.svg';
+        }
+    }
+
     public truthTable() {
         switch (this.type) {
             case "AND": this.truth_table = [[0, 0], [0, 1]];
@@ -73,13 +84,16 @@ export class Componente {
     public evaluate() {
         let output = -1;
         if (this.isReady()) {
-            console.log(this.type);
-            output = this.truth_table[this.inputs[0].value][this.inputs[1].value];
-            for (let i = 2; i < this.inputs.length; i++) {
-                output = this.truth_table[output][this.inputs[i].value];
+            if (this.truth_table != null) {
+                output = this.truth_table[this.inputs[0].value][this.inputs[1].value];
+                for (let i = 2; i < this.inputs.length; i++) {
+                    output = this.truth_table[output][this.inputs[i].value];
+                }
             }
+            else if(this.type == "NOT") output = (this.inputs[0].value != -1 ? 1 - this.inputs[0].value : -1);
+            else output = this.inputs[0].value;
+
         }
-        alert(output);
         return output;
     }
 
