@@ -14,7 +14,7 @@ export class Componente {
 
     constructor(numero_input: number, type: string, posizione: position) {
         this.immagine = new Image();
-        this.immagine.src = '/assets/' + type + '.svg';
+        this.immagine.src = './assets/' + type + '.svg';
         this.numero_input = numero_input;
         this.height = (Math.floor(numero_input / 2) + 1) * 2;
         this.width = this.normalizzaLarghezza();
@@ -57,11 +57,11 @@ export class Componente {
     public changeState(stato: number) {
         if (this.type == "INPUT" || this.type == "INPUTN") {
             this.type = "INPUT" + (stato == 1 ? "" : "N");
-            this.immagine.src = '/assets/' + this.type + '.svg';
+            this.immagine.src = './assets/' + this.type + '.svg';
         }
         else if (this.type == "WLED" || this.type == "RLED" || this.type == "GLED") {
             this.type = (stato == 1 ? "G" : "R") + "LED";
-            this.immagine.src = '/assets/' + this.type + '.svg';
+            this.immagine.src = './assets/' + this.type + '.svg';
         }
     }
 

@@ -10,12 +10,12 @@
             Gates
           </mat-expansion-panel-header>
 
-          <button mat-button (mousedown)="ContentComponent.selectComponent('AND',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/AND.svg"> </button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('OR',   $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/OR.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('NAND', $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NAND.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('NOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NOR.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('XOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/XOR.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('NOT',  $event)" (mouseup) ="ContentComponent.reset()"><img src="/assets/NOT.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('AND',  $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/AND.svg"> </button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('OR',   $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/OR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NAND', $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/NAND.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/NOR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('XOR',  $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/XOR.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('NOT',  $event)" (mouseup) ="ContentComponent.reset()"><img src="./assets/NOT.svg"></button>
 
         </mat-expansion-panel>
 
@@ -24,9 +24,9 @@
             Input & Output
           </mat-expansion-panel-header>
 
-          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUT',  $event) " (mouseup) ="ContentComponent.reset()"><img src="/assets/INPUT.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUTN', $event)"  (mouseup) ="ContentComponent.reset()"><img src="/assets/INPUTN.svg"></button>
-          <button mat-button (mousedown)="ContentComponent.selectComponent('WLED', $event)"  (mouseup) ="ContentComponent.reset()"><img src="/assets/WLED.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUT',  $event) " (mouseup) ="ContentComponent.reset()"><img src="./assets/INPUT.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('INPUTN', $event)"  (mouseup) ="ContentComponent.reset()"><img src="./assets/INPUTN.svg"></button>
+          <button mat-button (mousedown)="ContentComponent.selectComponent('WLED', $event)"  (mouseup) ="ContentComponent.reset()"><img src="./assets/WLED.svg"></button>
 
         </mat-expansion-panel>
 
@@ -41,16 +41,16 @@
       <span style="margin-right: 15px;">Strumenti </span>
       <mat-button-toggle-group value="0" >
         <mat-button-toggle value="0" (click)="ContentComponent.changeMode(0)">
-          <img src="/assets/wire.svg">
+          <img src="./assets/wire.svg">
         </mat-button-toggle>
         <mat-button-toggle value="1" (click)="ContentComponent.changeMode(1)">
-          <img src="/assets/delete.svg">
+          <img src="./assets/delete.svg">
         </mat-button-toggle>
         <mat-button-toggle value="2" (click)="ContentComponent.changeMode(2)">
-          <img src="/assets/move.svg">
+          <img src="./assets/move.svg">
         </mat-button-toggle>
         <mat-button-toggle value="2" (click)="ContentComponent.changeMode(3); ContentComponent.evaluateCircuit()">
-          <img src="/assets/play.svg">
+          <img src="./assets/play.svg">
         </mat-button-toggle>
       </mat-button-toggle-group>
     </mat-toolbar>
