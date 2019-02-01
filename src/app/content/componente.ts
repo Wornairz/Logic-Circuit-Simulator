@@ -77,6 +77,8 @@ export class Componente {
                 break;
             case "XOR": this.truth_table = [[0, 1], [1, 0]];
                 break;
+            case "EQU": this.truth_table = [[1, 0], [0, 1]];
+                break;
             default: this.truthTable = null;
         }
     }
@@ -90,7 +92,7 @@ export class Componente {
                     output = this.truth_table[output][this.inputs[i].value];
                 }
             }
-            else if(this.type == "NOT") output = (this.inputs[0].value != -1 ? 1 - this.inputs[0].value : -1);
+            else if (this.type == "NOT") output = (this.inputs[0].value != -1 ? 1 - this.inputs[0].value : -1);
             else output = this.inputs[0].value;
 
         }
