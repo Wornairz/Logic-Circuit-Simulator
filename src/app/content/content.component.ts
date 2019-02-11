@@ -25,7 +25,7 @@ export class ContentComponent implements AfterViewInit {
   private collegamenti: Array<Pin>; // come sopra ma per i pins
   private current: any; // oggetto temporaneo usato prima di rendere effettivo l'inserimento di un elemento (componente o filo)
   private currentPins: Array<Pin>; // come sopra ma dei pins
-  
+
   private rect: ClientRect; // oggetto che contiene informazioni del canvas (es. posizione) in modo che le posizioni degli elementi abbiano come riferimento il canvas
   private modalita: number; // modalità selezionata dalla toolbar (wire, delwire, movewire, play)
   private stato: number; // stato della modalità (es. se dopo aver cliccato wire si sta disegnando o meno)
@@ -69,7 +69,7 @@ export class ContentComponent implements AfterViewInit {
     canvasElement.addEventListener('mousedown', (e) => {
       e.preventDefault(); // Inibisce il comportamento di default
       if (e.which === 1) // Controlla se effettivamente è stato premuto il tasto sinistro del mouse
-        switch (this.modalita) { 
+        switch (this.modalita) {
           // 0: abilitazione_disegno_wire , 1: cancellazione_elemento, 2: abilitazione_movimento
           case 0: this.enableDrawing(e.clientX, e.clientY);
             break;
@@ -84,7 +84,7 @@ export class ContentComponent implements AfterViewInit {
 
     canvasElement.addEventListener('mousemove', (e) => {
       e.preventDefault(); // Inibisce il comportamento di default
-      switch (this.stato) { 
+      switch (this.stato) {
         // 0: disegno_wire_in_corso, 1: spostamento_elemento_in_corso, 2: inserimento_componente_in_corso
         case 0: this.newWire(e.clientX, e.clientY);
           this.gestisciDisegno(e.clientX, e.clientY);
@@ -102,11 +102,12 @@ export class ContentComponent implements AfterViewInit {
       e.preventDefault();
       if (e.which === 1) {
         if (!(this.prevPos == null || this.currentPos === null || (this.prevPos.x === this.currentPos.x && this.prevPos.y === this.currentPos.y))) {
-          this.prova();
+          this.connectPins();
           this.addPins();
           this.wires.push(this.current);
         }
         else if (this.stato == 2) {
+          this.connectPins();
           this.addPins();
           this.componenti.push(this.current);
         }
@@ -134,15 +135,15 @@ export class ContentComponent implements AfterViewInit {
       const canvasPos = this.getCanvasPos(e.clientX, e.clientY); // posizione NON "normalizzata" (riferita relativamente al canvas)
       let componenteSelezionato = this.elementoSelezionato(this.componenti, canvasPos.x, canvasPos.y); // ricerca, nell'array dei componenti, il componente che ha al suo interno la posizione del mouse
       if (componenteSelezionato !== null) {
-        if(componenteSelezionato.type == "INPUT"){
+        if (componenteSelezionato.type == "INPUT") {
           componenteSelezionato.changeState(false);
         }
-        else if(componenteSelezionato.type == "INPUTN"){
+        else if (componenteSelezionato.type == "INPUTN") {
           componenteSelezionato.changeState(true);
         }
-        componenteSelezionato.immagine.onload = (event)=>{this.reDraw()};
+        componenteSelezionato.immagine.onload = (event) => { this.reDraw() };
 
-      }      
+      }
     });
 
   }
@@ -247,7 +248,7 @@ export class ContentComponent implements AfterViewInit {
   }
 
   private reDraw() {
-    
+
     this.context.clearRect(0, 0, Globals.width, Globals.height); // Si pulisce il canvas (si rimuove TUTTO)
     this.drawGrid(); // Viene ridisegnata la griglia
     this.drawWires(); // Vengono ridisegnati tutti i fili
@@ -323,7 +324,7 @@ export class ContentComponent implements AfterViewInit {
     let numero_input = 2;
     if (componente.startsWith("INPUT"))
       numero_input = 0;
-    else if(componente.search("LED") != -1 || componente == "NOT")
+    else if (componente.search("LED") != -1 || componente == "NOT")
       numero_input = 1;
     this.current = new Componente(numero_input, componente, { x: 0, y: 0 });
     this.addInputs(numero_input);
@@ -364,23 +365,34 @@ export class ContentComponent implements AfterViewInit {
   }
 
 
-  public prova() {
+  public connectPins() {
+    let connected_output = null;
+    let connected_inputs = Array();
     this.collegamenti.forEach((pin) => {
       for (let i = this.currentPins.length - 1; i >= 0; i--) {
-        if (this.currentPins[i].equals(pin)) {
-          this.currentPins[i].next.forEach((next) => {
-            pin.addNext(next);
-            next.changeNext(pin);
-          });
+        if (connected_output != null) this.currentPins[i].changeNext(connected_output);
+        if (this.currentPins[i].equals(pin) && !(this.currentPins[i].firstParent() instanceof Componente && pin.firstParent() instanceof Componente)) {
+          if (this.currentPins[i].next.length == 0) connected_output = pin;
+          else {
+            connected_inputs.push(pin);
+            this.currentPins[i].next.forEach((next) => {
+              pin.addNext(next);
+              next.changeNext(pin);
+            });
+          }
           this.currentPins[i].parent.forEach((parent) => {
-            pin.addParent(parent);
+            pin.addParent(parent, this.currentPins[i]);
           });
           pin.updateColor();
           this.currentPins.splice(i, 1);
         }
       }
     })
-
+    if (connected_output != null) {
+      connected_inputs.forEach((pin) => {
+        pin.changeNext(connected_output);
+      })
+    }
   }
 
   public resetPins() {
@@ -415,7 +427,7 @@ export class ContentComponent implements AfterViewInit {
       let input = inputs.pop();
       input.next.forEach((next) => {
         if (next.value === -1) {
-          let componente = next.getComponent();
+          let componente = next.firstParent();
           if (componente instanceof Componente) {
             // Non è un Pin di output
             if (next.posizione.x != componente.posizione.x + componente.width) {
@@ -423,9 +435,9 @@ export class ContentComponent implements AfterViewInit {
               next.value = input.value;
             }
             else next.value = componente.evaluate();
-            if(componente.type == "WLED" || componente.type == "RLED" || componente.type == "GLED"){
+            if (componente.type == "WLED" || componente.type == "RLED" || componente.type == "GLED") {
               componente.changeState(next.value);
-              componente.immagine.onload = (event)=>{componente.draw(this.context);};
+              componente.immagine.onload = (event) => { componente.draw(this.context); };
             }
           }
           else next.value = input.value;

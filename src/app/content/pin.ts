@@ -20,10 +20,16 @@ export class Pin {
         this.parent = new Array();
         this.parent.push(parent);
         this.next = new Array();
-        this._posizione = { // la posizione del Pin è ottenuta dalla posizione del suo primo parent cioè il componente
-            x: this.parent[0].posizione.x + this.relativePosition.x,
-            y: this.parent[0].posizione.y + this.relativePosition.y
-        };
+        if (this.parent[0] instanceof Wire)
+            this._posizione = posizione;   
+        else {
+            this._posizione = { // la posizione del Pin è ottenuta dalla posizione del suo primo parent cioè il componente
+                x: this.parent[0].posizione.x + this.relativePosition.x,
+                y: this.parent[0].posizione.y + this.relativePosition.y
+            };
+
+        }
+
     }
 
     get posizione(): position {
@@ -108,11 +114,17 @@ export class Pin {
         this.addElement(last, this.next);
     }
 
-    public addParent(last: Wire) {
-        if (last.sorgente.x === this.posizione.x && last.sorgente.y === this.posizione.y)
-            last.sorgente = this.posizione;
-        else last.destinazione = this.posizione;
-        this.addElement(last, this.parent);
+    public addParent(last: any, pin: Pin) {
+        if (last instanceof Wire) {
+            if (last.sorgente.x === this.posizione.x && last.sorgente.y === this.posizione.y)
+                last.sorgente = this.posizione;
+            else last.destinazione = this.posizione;
+            this.addElement(last, this.parent);
+        }
+        else{
+            this.addElementTesta(last, this.parent);
+            this.relativePosition = pin.relativePosition;
+        }
     }
 
     public addElement(last: any, elementi: Array<any>) {
@@ -120,6 +132,13 @@ export class Pin {
         for (i = elementi.length - 1; i >= 0 && !last.equals(elementi[i]); i--);
         if (i === -1)
             elementi.push(last);
+    }
+
+    public addElementTesta(last: any, elementi: Array<any>) {
+        let i: number;
+        for (i = elementi.length - 1; i >= 0 && !last.equals(elementi[i]); i--);
+        if (i === -1)
+            elementi.unshift(last);
     }
 
     public updateParentProperties() {
@@ -135,7 +154,7 @@ export class Pin {
                     default: break;
                 }
             }
-
+            else parent.changeState(this.value);
         });
 
     }
@@ -149,11 +168,9 @@ export class Pin {
         context.fill();
     }
 
-    public getComponent() {
+    public firstParent() {
         return this.parent[0];
     }
-
-
 
     public printTemp() {
         console.log("I'm at: ");
