@@ -94,7 +94,6 @@ export class Componente {
             }
             else if (this.type == "NOT") output = (this.inputs[0].value != -1 ? 1 - this.inputs[0].value : -1);
             else output = this.inputs[0].value;
-
         }
         return output;
     }
